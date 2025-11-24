@@ -1,0 +1,395 @@
+/* main.css - 메인 페이지 (출퇴근 기록) 스타일 */
+
+/* ==================== 시간 표시 ==================== */
+.time-display {
+    text-align: center;
+    padding: var(--spacing-xl) 0;
+    animation: fadeIn 0.6s ease-out;
+}
+
+.current-time {
+    font-size: var(--font-size-5xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-sm);
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+}
+
+.current-date {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+    font-weight: var(--font-medium);
+}
+
+/* ==================== GPS 정보 ==================== */
+.gps-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    animation: slideUp 0.6s ease-out 0.2s both;
+}
+
+.gps-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.gps-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.gps-address {
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    font-weight: var(--font-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: var(--spacing-xs);
+}
+
+.btn-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: var(--color-gray-100);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    flex-shrink: 0;
+}
+
+.btn-icon:hover {
+    background-color: var(--color-gray-200);
+    transform: rotate(180deg);
+}
+
+.btn-icon:active {
+    transform: rotate(180deg) scale(0.95);
+}
+
+/* ==================== 연차 알림 ==================== */
+.leave-notice {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: var(--color-text-white);
+    margin-bottom: var(--spacing-lg);
+    animation: slideUp 0.6s ease-out 0.3s both;
+}
+
+.leave-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+}
+
+.leave-content h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--spacing-xs);
+}
+
+.leave-content p {
+    font-size: var(--font-size-sm);
+    opacity: 0.9;
+}
+
+/* ==================== 출퇴근 현황 ==================== */
+.attendance-status {
+    margin-bottom: var(--spacing-xl);
+    animation: slideUp 0.6s ease-out 0.4s both;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.status-item:last-child {
+    border-bottom: none;
+}
+
+.status-total {
+    background-color: var(--color-bg-tertiary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-base);
+    margin-top: var(--spacing-sm);
+    border-bottom: none;
+}
+
+.status-label {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    font-weight: var(--font-medium);
+}
+
+.status-value {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.status-time {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-primary);
+    font-weight: var(--font-bold);
+    font-variant-numeric: tabular-nums;
+}
+
+.status-location {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    margin-top: var(--spacing-xs);
+}
+
+.status-badge {
+    margin-left: var(--spacing-sm);
+}
+
+/* ==================== 출퇴근 버튼 ==================== */
+.attendance-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.attendance-btn {
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.6s ease-out 0.5s both;
+    box-shadow: var(--shadow-sm);
+}
+
+.attendance-btn .btn-icon {
+    font-size: var(--font-size-2xl);
+}
+
+.attendance-btn:nth-child(2) {
+    animation-delay: 0.6s;
+}
+
+.attendance-btn:disabled {
+    background-color: var(--color-gray-200);
+    color: var(--color-text-tertiary);
+    cursor: not-allowed;
+}
+
+/* 버튼 활성화 애니메이션 */
+.attendance-btn:not(:disabled)::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.attendance-btn:not(:disabled):active::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* ==================== 최근 기록 ==================== */
+.recent-records {
+    animation: slideUp 0.6s ease-out 0.7s both;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.section-header h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+}
+
+.record-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.record-item {
+    background-color: var(--color-bg-primary);
+    border-radius: var(--radius-base);
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all var(--transition-base);
+    cursor: pointer;
+}
+
+.record-item:hover {
+    box-shadow: var(--shadow-base);
+    transform: translateY(-2px);
+}
+
+.record-item:active {
+    transform: translateY(0);
+}
+
+.record-date {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.record-day {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+}
+
+.record-weekday {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.record-times {
+    display: flex;
+    gap: var(--spacing-lg);
+    align-items: center;
+}
+
+.record-time-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--spacing-xs);
+}
+
+.record-time-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+}
+
+.record-time-value {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-medium);
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.record-hours {
+    font-size: var(--font-size-sm);
+    color: var(--color-primary);
+    font-weight: var(--font-bold);
+}
+
+/* 빈 상태 */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-2xl);
+    color: var(--color-text-tertiary);
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.5;
+}
+
+.empty-state-text {
+    font-size: var(--font-size-base);
+}
+
+/* ==================== 확인 모달 ==================== */
+.confirm-info {
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-base);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.confirm-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+}
+
+.confirm-item:not(:last-child) {
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.confirm-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: var(--font-medium);
+}
+
+.confirm-value {
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    font-weight: var(--font-bold);
+}
+
+.modal-text {
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-base);
+}
+
+/* ==================== 반응형 ==================== */
+@media (max-width: 360px) {
+    .current-time {
+        font-size: var(--font-size-4xl);
+    }
+
+    .current-date {
+        font-size: var(--font-size-base);
+    }
+
+    .record-times {
+        gap: var(--spacing-md);
+    }
+
+    .attendance-btn .btn-icon {
+        font-size: var(--font-size-xl);
+    }
+}
+
+/* ==================== 애니메이션 효과 ==================== */
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.loading {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* GPS 로딩 중 */
+.gps-loading .gps-icon {
+    animation: spin 2s linear infinite;
+}
+
+/* 근무 시간 업데이트 애니메이션 */
+.time-update {
+    animation: scaleIn 0.3s ease-out;
+}

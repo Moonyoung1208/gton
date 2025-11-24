@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>출퇴근 - 출퇴근 관리</title>
+    <link rel="stylesheet" href="css/font.css">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/main.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="header-title">근태ON</h1>
+            <div class="header-actions">
+                <a href="#" id="notificationBtn" class="header-icon-btn">
+                    <i class="fa-regular fa-bell"></i>
+                </a>
+                <a href="./mypage.html" class="header-icon-btn">
+                    <i class="fa-solid fa-user"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="page-wrapper">
+        <div class="container">
+            <!-- 현재 시간 -->
+            <div class="time-display">
+                <div class="current-time" id="currentTime">--:--:--</div>
+                <div class="current-date" id="currentDate">----년 --월 --일</div>
+            </div>
+
+            <!-- GPS 위치 정보 -->
+            <div class="gps-info card">
+                <div class="gps-icon"><i class="fa-solid fa-map-pin"></i></div>
+                <div class="gps-details">
+                    <div class="gps-address" id="gpsAddress">위치 정보를 가져오는 중...</div>
+                </div>
+                <button class="btn-icon" id="refreshGpsBtn" title="위치 새로고침">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+            </div>
+
+            <!-- 연차 알림 (연차인 경우만 표시) -->
+            <div class="leave-notice card hidden" id="leaveNotice">
+                <div class="leave-icon">🏖️</div>
+                <div class="leave-content">
+                    <h3>오늘은 연차입니다</h3>
+                    <p>편안한 하루 보내세요! 출퇴근 기록이 면제됩니다.</p>
+                </div>
+            </div>
+
+            <!-- 출퇴근 버튼 -->
+            <div class="attendance-actions">
+                <button class="btn btn-primary btn-full btn-lg attendance-btn" id="checkInBtn">
+                    출근하기
+                </button>
+                <button class="btn btn-secondary btn-full btn-lg attendance-btn" id="checkOutBtn" disabled>
+                    퇴근하기
+                </button>
+            </div>
+
+            <!-- 오늘의 출퇴근 현황 -->
+            <div class="attendance-status card">
+                <h3 class="card-title">오늘의 근무 현황</h3>
+
+                <div class="status-item">
+                    <div class="status-label">출근</div>
+                    <div class="status-value" id="checkInStatus">
+                        <span class="status-time">미기록</span>
+                    </div>
+                </div>
+
+                <div class="status-item">
+                    <div class="status-label">퇴근</div>
+                    <div class="status-value" id="checkOutStatus">
+                        <span class="status-time">미기록</span>
+                    </div>
+                </div>
+
+                <div class="status-item status-total">
+                    <div class="status-label">근무시간</div>
+                    <div class="status-value" id="workingHours">
+                        <span class="status-time">0시간 0분</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 하단 네비게이션 -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="index.html" class="navbar-item active">
+                <span class="navbar-icon">🏠</span>
+                <span class="navbar-label">홈</span>
+            </a>
+            <a href="records.html" class="navbar-item">
+                <span class="navbar-icon">📋</span>
+                <span class="navbar-label">기록</span>
+            </a>
+            <a href="leave.html" class="navbar-item">
+                <span class="navbar-icon">🏖️</span>
+                <span class="navbar-label">연차</span>
+            </a>
+            <a href="stats.html" class="navbar-item">
+                <span class="navbar-icon">📊</span>
+                <span class="navbar-label">통계</span>
+            </a>
+            <a href="mypage.html" class="navbar-item">
+                <span class="navbar-icon">👤</span>
+                <span class="navbar-label">MY</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 출근 확인 모달 -->
+    <div id="checkInModal" class="modal-backdrop hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">출근 확인</h3>
+                <button class="modal-close" onclick="closeModal('checkInModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="confirm-info">
+                    <div class="confirm-item">
+                        <span class="confirm-label">시간</span>
+                        <span class="confirm-value" id="confirmCheckInTime">--:--</span>
+                    </div>
+                    <div class="confirm-item">
+                        <span class="confirm-label">위치</span>
+                        <span class="confirm-value" id="confirmCheckInLocation">--</span>
+                    </div>
+                </div>
+                <p class="modal-text">위 시간에 출근하시겠습니까?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary flex-1" onclick="closeModal('checkInModal')">취소</button>
+                <button class="btn btn-primary flex-1" id="confirmCheckInBtn">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 퇴근 확인 모달 -->
+    <div id="checkOutModal" class="modal-backdrop hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">퇴근 확인</h3>
+                <button class="modal-close" onclick="closeModal('checkOutModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="confirm-info">
+                    <div class="confirm-item">
+                        <span class="confirm-label">시간</span>
+                        <span class="confirm-value" id="confirmCheckOutTime">--:--</span>
+                    </div>
+                    <div class="confirm-item">
+                        <span class="confirm-label">위치</span>
+                        <span class="confirm-value" id="confirmCheckOutLocation">--</span>
+                    </div>
+                    <div class="confirm-item">
+                        <span class="confirm-label">근무시간</span>
+                        <span class="confirm-value" id="confirmWorkHours">--</span>
+                    </div>
+                </div>
+                <p class="modal-text">위 시간에 퇴근하시겠습니까?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary flex-1" onclick="closeModal('checkOutModal')">취소</button>
+                <button class="btn btn-primary flex-1" id="confirmCheckOutBtn">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- <script src="js/common.js"></script>
+    <script src="js/gps.js"></script>
+    <script src="js/main.js"></script> -->
+</body>
+
+</html>

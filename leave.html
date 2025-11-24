@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>연차 관리 - 출퇴근 관리</title>
+    <link rel="stylesheet" href="css/font.css">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/leave.css">
+</head>
+
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="header-title">🏖️ 연차 관리</h1>
+            <div class="header-actions">
+                <button class="header-icon-btn" onclick="window.location.href='mypage.html'">
+                    👤
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="page-wrapper">
+        <div class="container">
+
+            <!-- 연차 현황 카드 -->
+            <div class="leave-summary card">
+                <h3 class="card-title">연차 현황</h3>
+                <div class="leave-stats">
+                    <div class="leave-stat-item">
+                        <div class="stat-label">총 연차</div>
+                        <div class="stat-value" id="totalLeave">15일</div>
+                    </div>
+                    <div class="leave-stat-divider"></div>
+                    <div class="leave-stat-item">
+                        <div class="stat-label">사용</div>
+                        <div class="stat-value stat-used" id="usedLeave">5일</div>
+                    </div>
+                    <div class="leave-stat-divider"></div>
+                    <div class="leave-stat-item">
+                        <div class="stat-label">대기</div>
+                        <div class="stat-value stat-pending" id="pendingLeave">2일</div>
+                    </div>
+                    <div class="leave-stat-divider"></div>
+                    <div class="leave-stat-item">
+                        <div class="stat-label">잔여</div>
+                        <div class="stat-value stat-remaining" id="remainingLeave">8일</div>
+                    </div>
+                </div>
+
+                <div class="leave-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="leaveProgress" style="width: 33%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span>사용률</span>
+                        <span id="leaveUsagePercent">33%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 연차 신청 버튼 -->
+            <button class="btn btn-primary btn-full btn-lg" id="newLeaveBtn">
+                <span style="font-size: 1.5rem;">➕</span>
+                새 연차 신청
+            </button>
+
+            <!-- 탭 네비게이션 -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="pending">
+                    대기중 <span class="tab-count" id="pendingCount">0</span>
+                </button>
+                <button class="tab-btn" data-tab="approved">
+                    승인됨 <span class="tab-count" id="approvedCount">0</span>
+                </button>
+                <button class="tab-btn" data-tab="rejected">
+                    반려됨 <span class="tab-count" id="rejectedCount">0</span>
+                </button>
+            </div>
+
+            <!-- 연차 신청 목록 -->
+            <div class="tab-content active" id="pendingTab">
+                <div class="leave-list" id="pendingList">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+
+            <div class="tab-content" id="approvedTab">
+                <div class="leave-list" id="approvedList">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+
+            <div class="tab-content" id="rejectedTab">
+                <div class="leave-list" id="rejectedList">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 하단 네비게이션 -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="index.html" class="navbar-item">
+                <span class="navbar-icon">🏠</span>
+                <span class="navbar-label">홈</span>
+            </a>
+            <a href="records.html" class="navbar-item">
+                <span class="navbar-icon">📋</span>
+                <span class="navbar-label">기록</span>
+            </a>
+            <a href="leave.html" class="navbar-item active">
+                <span class="navbar-icon">🏖️</span>
+                <span class="navbar-label">연차</span>
+            </a>
+            <a href="stats.html" class="navbar-item">
+                <span class="navbar-icon">📊</span>
+                <span class="navbar-label">통계</span>
+            </a>
+            <a href="mypage.html" class="navbar-item">
+                <span class="navbar-icon">👤</span>
+                <span class="navbar-label">MY</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 연차 신청 모달 -->
+    <div id="newLeaveModal" class="modal-backdrop hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">연차 신청</h3>
+                <button class="modal-close" onclick="closeModal('newLeaveModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="leaveForm">
+
+                    <div class="form-group">
+                        <label class="form-label form-label-required">연차 종류</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="leaveType" value="annual" checked>
+                                <span>연차 (1일)</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="leaveType" value="morning_half">
+                                <span>반차 - 오전 (0.5일)</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="leaveType" value="afternoon_half">
+                                <span>반차 - 오후 (0.5일)</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="leaveType" value="sick">
+                                <span>병가</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="leaveType" value="family">
+                                <span>경조사</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="startDate" class="form-label form-label-required">시작 날짜</label>
+                        <input type="date" id="startDate" class="form-input" required>
+                    </div>
+
+                    <div class="form-group" id="endDateGroup">
+                        <label for="endDate" class="form-label form-label-required">종료 날짜</label>
+                        <input type="date" id="endDate" class="form-input" required>
+                    </div>
+
+                    <div class="form-info" id="leaveDaysInfo">
+                        <div class="info-item">
+                            <span>사용 일수</span>
+                            <strong id="calculatedDays">1일</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>신청 후 잔여</span>
+                            <strong id="afterRemaining">7일</strong>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reason" class="form-label form-label-required">사유</label>
+                        <textarea id="reason" class="form-textarea" placeholder="연차 사유를 입력해주세요" rows="4"
+                            required></textarea>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary flex-1" onclick="closeModal('newLeaveModal')">취소</button>
+                <button class="btn btn-primary flex-1" id="submitLeaveBtn">신청하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 연차 상세보기 모달 -->
+    <div id="leaveDetailModal" class="modal-backdrop hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">연차 신청 상세</h3>
+                <button class="modal-close" onclick="closeModal('leaveDetailModal')">✕</button>
+            </div>
+            <div class="modal-body" id="leaveDetailBody">
+                <!-- JavaScript로 동적 생성 -->
+            </div>
+            <div class="modal-footer" id="leaveDetailFooter">
+                <!-- JavaScript로 동적 생성 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/common.js"></script>
+    <script src="js/leave.js"></script>
+</body>
+
+</html>

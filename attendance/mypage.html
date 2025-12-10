@@ -1,0 +1,231 @@
+<?php
+session_start();
+
+if (!isset($_SESSION['user_id']) || $_SESSION['logged_in'] !== TRUE) {
+    // 세션에 user_id가 없거나 logged_in 상태가 아니면 로그인 페이지로 이동
+    header("Location: ./index.html"); 
+    exit;
+}
+
+require_once 'config.php'; 
+
+$user_name = $_SESSION['user_name'];
+$user_id = $_SESSION['user_id']; 
+$current_date = date("Y-m-d");
+
+$conn = connectDB();
+
+// 사용자 정보
+$user_info = [];
+$sql = "SELECT 
+            username, 
+            name, 
+            email, 
+            phone, 
+            department, 
+            position
+        FROM users 
+        WHERE user_id = ?";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 1) {
+    $user_info = $result->fetch_assoc();
+} else {
+    // 사용자 정보를 찾을 수 없는 경우 예외 처리 (강제 로그아웃 등)
+    session_destroy();
+    header("Location: ./index.html"); 
+    exit;
+}
+
+$stmt->close();
+
+$settings = [
+    'standard_check_in' => '미설정',
+    'standard_check_out' => '미설정'
+];
+
+$sql_settings = "SELECT 
+                    standard_check_in, 
+                    standard_check_out
+               FROM settings 
+               WHERE user_id = ?";
+
+$stmt_settings = $conn->prepare($sql_settings);
+$stmt_settings->bind_param("i", $user_id);
+$stmt_settings->execute();
+$result_settings = $stmt_settings->get_result();
+
+if ($result_settings->num_rows === 1) {
+    // 조회된 설정 값이 있다면 업데이트
+    $settings = $result_settings->fetch_assoc();
+}
+$stmt_settings->close();
+
+$conn->close();
+
+$display_name = htmlspecialchars($user_info['name']);
+$display_username = htmlspecialchars($user_info['username']); 
+$display_email = htmlspecialchars($user_info['email']);
+$display_department = htmlspecialchars($user_info['department']);
+$display_position = htmlspecialchars($user_info['position']);
+$display_check_in = htmlspecialchars($user_info['standard_check_in'] ?? '미설정');
+$display_check_out = htmlspecialchars($user_info['standard_check_out'] ?? '미설정');
+
+?>
+
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이페이지 - 근태ON</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/mypage.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+        integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">근태ON</div>
+            <div class="user-info">
+                <?php echo $user_name; ?>님 환영합니다
+            </div>
+        </div>
+    </header>
+
+    <nav class="nav">
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="dashboard.html" class="nav-link">
+                    <i class="fa-regular fa-house"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="records.html" class="nav-link">
+                    <i class="fa-regular fa-calendar"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="statistics.html" class="nav-link">
+                    <i class="fa-solid fa-chart-column"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="mypage.html" class="nav-link active">
+                    <i class="fa-solid fa-gear"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <section class="section">
+            <h2 class="section-title">출퇴근 시간</h2>
+            <div class="grid grid-2">
+                <div class="info-item">
+                    <div class="info-label">출근 시간</div>
+                    <div class="info-value">
+                        <?php echo $display_check_in; ?>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">퇴근 시간</div>
+                    <div class="info-value">
+                        <?php echo $display_check_in; ?>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="section">
+            <h2 class="section-title">내 정보</h2>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">이름</div>
+                    <div class="info-value">
+                        <?php echo $display_name; ?>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">이메일</div>
+                    <div class="info-value">
+                        <?php echo $display_email; ?>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">부서</div>
+                    <div class="info-value">
+                        <?php echo $display_department; ?>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">직급</div>
+                    <div class="info-value">
+                        <?php echo $display_position; ?>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">정보 수정</h2>
+            <form action="update_profile.php" method="POST" autocomplete='off'>
+                <div class="form-group">
+                    <label class="form-label" for="name">이름</label>
+                    <input type="text" id="name" name="name" class="form-input" value="<?php echo $display_name; ?>">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email">이메일</label>
+                    <input type="email" id="email" name="email" class="form-input"
+                        value="<?php echo $display_email; ?>">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="department">부서</label>
+                    <input type="text" id="department" name="department" class="form-input"
+                        value="<?php echo $display_department; ?>">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="position">직급</label>
+                    <input type="text" id="position" name="position" class="form-input"
+                        value="<?php echo $display_position; ?>">
+                </div>
+
+                <button type="submit" class="btn btn-primary full">정보 수정</button>
+            </form>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">비밀번호 변경</h2>
+            <form action="update_password.php" method="POST" autocomplete='off'>
+                <div class="form-group">
+                    <label class="form-label" for="current-password">현재 비밀번호</label>
+                    <input type="password" name="current_password" id="current-password" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="new-password">새 비밀번호</label>
+                    <input type="password" name="new_password" id="new-password" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="confirm-password">새 비밀번호 확인</label>
+                    <input type="password" name="confirm_password" id="confirm-password" class="form-input">
+                </div>
+                <button type="submit" class="btn btn-primary full">비밀번호 변경</button>
+            </form>
+        </section>
+        <a href="./logout_process.php" class="logout" onclick="return confirm('정말로 로그아웃 하시겠습니까?');">로그아웃</a>
+    </main>
+
+</body>
+
+</html>

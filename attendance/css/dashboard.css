@@ -1,0 +1,86 @@
+.time-display {
+    text-align: center;
+    padding: 2rem 0;
+    margin-bottom: 1rem;
+}
+
+.current-time {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--main-color);
+}
+
+.current-date {
+    font-size: 1.1rem;
+    color: var(--Gray-600);
+}
+
+.work-status {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.status-item {
+    text-align: center;
+    padding: 1rem;
+    background-color: var(--Gray-100);
+    border-radius: 8px;
+}
+
+.status-label {
+    font-size: 0.9rem;
+    color: var(--Gray-600);
+    margin-bottom: 0.5rem;
+}
+
+.status-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--main-color);
+}
+
+.work-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.work-buttons button {
+    font-weight: bold;
+}
+
+.location-info {
+    text-align: center;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 2px solid var(--main-color);
+    border-radius: 6px;
+    font-weight: bold;
+    color: var(--Gray-700);
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.summary-item {
+    text-align: center;
+    background-color: var(--Gray-100);
+}
+
+.summary-label {
+    font-size: 0.875rem;
+    color: var(--Gray-600);
+    margin-bottom: 0.5rem;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--main-color);
+}

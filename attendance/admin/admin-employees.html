@@ -1,0 +1,280 @@
+<?php
+session_start();
+
+// 로그인 세션 변수가 설정되지 않았거나 FALSE인 경우
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
+    // 세션이 없으면 로그인 페이지로 강제 이동
+    header("Location: admin-login.html");
+    exit;
+}
+// 로그인 성공 상태를 유지해야 합니다.
+?>
+
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>직원 관리 - 근태ON</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+        integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">근태ON 관리자</div>
+            <div class="user-info">관리자님 환영합니다</div>
+        </div>
+    </header>
+
+    <nav class="nav">
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="admin-dashboard.html" class="nav-link">
+                    <i class="fa-solid fa-chart-line"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-employees.html" class="nav-link active">
+                    <i class="fa-solid fa-users"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-records.html" class="nav-link">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-settings.html" class="nav-link">
+                    <i class="fa-solid fa-gear"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <section class="section">
+            <h2 class="section-title">직원 관리</h2>
+
+            <div class="employee-search">
+                <div class="search-wrapper">
+                    <input type="text" class="search-input" placeholder="직원 이름 또는 부서로 검색...">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                </div>
+            </div>
+
+            <div class="dept-filter">
+                <button class="chip active">전체</button>
+                <button class="chip">개발팀</button>
+                <button class="chip">디자인팀</button>
+                <button class="chip">기획팀</button>
+                <button class="chip">마케팅팀</button>
+                <button class="chip">인사팀</button>
+            </div>
+            <button class="btn btn-primary full" onclick="window.location.href='./add-employee.html'">
+                <i class="fa-solid fa-user-plus"></i>
+                직원 추가
+            </button>
+        </section>
+
+
+        <section class="section">
+            <div class="employee-grid">
+                <div class="employee-card" onclick="openEmployeeDetail()">
+                    <div class="employee-info">
+                        <div class="employee-name">김철수</div>
+                        <div class="employee-dept">개발팀</div>
+                    </div>
+                    <div class="employee-status">
+                        <span class="badge badge-success">출근</span>
+                    </div>
+                </div>
+
+                <div class="employee-card" onclick="openEmployeeDetail()">
+                    <div class="employee-info">
+                        <div class="employee-name">이영희</div>
+                        <div class="employee-dept">디자인팀</div>
+                    </div>
+                    <div class="employee-status">
+                        <span class="badge badge-success">출근</span>
+                    </div>
+                </div>
+
+                <div class="employee-card" onclick="openEmployeeDetail()">
+                    <div class="employee-info">
+                        <div class="employee-name">박민수</div>
+                        <div class="employee-dept">기획팀</div>
+                    </div>
+                    <div class="employee-status">
+                        <span class="badge badge-warning">지각</span>
+                    </div>
+                </div>
+
+                <div class="employee-card" onclick="openEmployeeDetail()">
+                    <div class="employee-info">
+                        <div class="employee-name">정수현</div>
+                        <div class="employee-dept">마케팅팀</div>
+                    </div>
+                    <div class="employee-status">
+                        <span class="badge badge-success">출근</span>
+                    </div>
+                </div>
+
+                <div class="employee-card" onclick="openEmployeeDetail()">
+                    <div class="employee-info">
+                        <div class="employee-name">홍길동</div>
+                        <div class="employee-dept">개발팀</div>
+                    </div>
+                    <div class="employee-status">
+                        <span class="badge badge-warning">지각</span>
+                    </div>
+                </div>
+
+                <div class="employee-card" onclick="openEmployeeDetail()">
+                    <div class="employee-info">
+                        <div class="employee-name">최지우</div>
+                        <div class="employee-dept">인사팀</div>
+                    </div>
+                    <div class="employee-status">
+                        <span class="badge badge-success">출근</span>
+                    </div>
+                </div>
+
+                <div class="employee-card" onclick="openEmployeeDetail()">
+                    <div class="employee-info">
+                        <div class="employee-name">강동원</div>
+                        <div class="employee-dept">디자인팀</div>
+                    </div>
+                    <div class="employee-status">
+                        <span class="badge badge-success">출근</span>
+                    </div>
+                </div>
+
+                <div class="employee-card" onclick="openEmployeeDetail()">
+                    <div class="employee-info">
+                        <div class="employee-name">윤서연</div>
+                        <div class="employee-dept">기획팀</div>
+                    </div>
+                    <div class="employee-status">
+                        <span class="badge badge-success">출근</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Employee Detail Modal -->
+    <div class="modal" id="employeeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">직원 상세 정보</h3>
+                <button class="modal-close" onclick="closeEmployeeDetail()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-section">
+                    <div class="detail-section-title">기본 정보</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">이름</div>
+                            <div class="detail-value">김철수</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">부서</div>
+                            <div class="detail-value">개발팀</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">이메일</div>
+                            <div class="detail-value">kim@company.com</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">입사일</div>
+                            <div class="detail-value">2023-03-15</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-section-title">이번 달 근태 요약</div>
+                    <div class="quick-stats">
+                        <div class="quick-stat">
+                            <div class="quick-stat-label">출근일</div>
+                            <div class="quick-stat-value">18</div>
+                        </div>
+                        <div class="quick-stat">
+                            <div class="quick-stat-label">지각</div>
+                            <div class="quick-stat-value">2</div>
+                        </div>
+                        <div class="quick-stat">
+                            <div class="quick-stat-label">결근</div>
+                            <div class="quick-stat-value">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-section-title">최근 출퇴근 기록</div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>날짜</th>
+                                <th>출근</th>
+                                <th>퇴근</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>12-01</td>
+                                <td>09:00</td>
+                                <td>18:00</td>
+                                <td><span class="badge badge-success">정상</span></td>
+                            </tr>
+                            <tr>
+                                <td>11-30</td>
+                                <td>09:15</td>
+                                <td>18:20</td>
+                                <td><span class="badge badge-warning">지각</span></td>
+                            </tr>
+                            <tr>
+                                <td>11-29</td>
+                                <td>08:55</td>
+                                <td>18:05</td>
+                                <td><span class="badge badge-success">정상</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEmployeeDetail()">닫기</button>
+                <button class="btn btn-primary">정보 수정</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openEmployeeDetail() {
+            document.getElementById('employeeModal').classList.add('active');
+        }
+
+        function closeEmployeeDetail() {
+            document.getElementById('employeeModal').classList.remove('active');
+        }
+
+        // 모달 외부 클릭시 닫기
+        document.getElementById('employeeModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeEmployeeDetail();
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 - 근태ON</title>
+
+    <!-- css -->
+    <link rel="stylesheet" href="css/font.css">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/signup.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+        integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+
+<body>
+    <div class="signup-container">
+        <div class="signup-box">
+            <div class="signup-header font-godo">
+                <h1>회원가입</h1>
+                <p>근태ON에 오신 것을 환영합니다</p>
+            </div>
+
+            <!-- 에러/성공 메시지 표시 영역 -->
+            <div id="messageArea"></div>
+
+            <form class="signup-form" action="signup_process.php" method="POST" autocomplete='off'>
+
+                <div class="signup-wrap">
+                    <div class="form-group" id="username-group">
+                        <label class="form-label" for="username">사용자 아이디 (로그인용)</label>
+                        <div class="input-with-button">
+                            <input type="text" id="username" name="username" class="form-input" placeholder="아이디를 입력하세요"
+                                required>
+                            <button type="button" id="checkUsernameBtn" class="btn btn-secondary btn-sm">확인</button>
+                        </div>
+                        <small id="usernameMessage" class="form-text"></small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="name">이름</label>
+                        <input type="text" id="name" name="name" class="form-input" placeholder="홍길동" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email">이메일</label>
+                        <input type="email" id="email" name="email" class="form-input" placeholder="example@company.com"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="phone">전화번호</label>
+                        <input type="text" id="phone" name="phone" class="form-input" placeholder="010-0000-0000"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password">비밀번호</label>
+                        <input type="password" id="password" name="password" class="form-input"
+                            placeholder="비밀번호를 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password-confirm">비밀번호 확인</label>
+                        <input type="password" id="password-confirm" name="password_confirm" class="form-input"
+                            placeholder="비밀번호를 다시 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="department">부서</label>
+                        <input type="text" id="department" name="department" class="form-input" placeholder="개발팀">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="position">직급</label>
+                        <input type="text" id="position" name="position" class="form-input" placeholder="사원" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">가입하기</button>
+            </form>
+
+            <div class="signup-footer">
+                이미 계정이 있으신가요? <a href="index.html">로그인</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수로 중복 확인 상태를 저장
+        let isUsernameChecked = false;
+        let isUsernameAvailable = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const usernameInput = document.getElementById('username');
+            const checkBtn = document.getElementById('checkUsernameBtn');
+            const usernameMsg = document.getElementById('usernameMessage');
+            const signupForm = document.querySelector('.signup-form');
+            const messageArea = document.getElementById('messageArea');
+
+            // URL 파라미터에서 이전 입력값 및 에러 메시지 복원
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // 에러 메시지 표시
+            if (urlParams.has('error')) {
+                const errorMsg = urlParams.get('error');
+                messageArea.innerHTML = `<div class="error-message">${errorMsg}</div>`;
+            }
+
+            // 성공 메시지 표시 (필요한 경우)
+            if (urlParams.has('success')) {
+                const successMsg = urlParams.get('success');
+                messageArea.innerHTML = `<div class="success-message">${successMsg}</div>`;
+            }
+
+            // 입력값 복원 (비밀번호는 제외)
+            if (urlParams.has('username')) {
+                document.getElementById('username').value = urlParams.get('username');
+            }
+            if (urlParams.has('name')) {
+                document.getElementById('name').value = urlParams.get('name');
+            }
+            if (urlParams.has('email')) {
+                document.getElementById('email').value = urlParams.get('email');
+            }
+            if (urlParams.has('phone')) {
+                document.getElementById('phone').value = urlParams.get('phone');
+            }
+            if (urlParams.has('department')) {
+                document.getElementById('department').value = urlParams.get('department');
+            }
+            if (urlParams.has('position')) {
+                document.getElementById('position').value = urlParams.get('position');
+            }
+
+            // URL을 깔끔하게 정리 (파라미터 제거)
+            if (urlParams.toString()) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            // 1. 중복 확인 버튼 클릭 이벤트
+            checkBtn.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+
+                if (username.length < 4) {
+                    usernameMsg.textContent = '아이디는 최소 4자 이상이어야 합니다.';
+                    usernameMsg.style.color = 'red';
+                    isUsernameChecked = false;
+                    isUsernameAvailable = false;
+                    return;
+                }
+
+                // AJAX 요청 (fetch API 사용)
+                fetch('check_username.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `username=${encodeURIComponent(username)}`
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        isUsernameChecked = true;
+                        isUsernameAvailable = data.success;
+                        usernameMsg.textContent = data.message;
+                        usernameMsg.style.color = data.success ? 'green' : 'red';
+
+                        // 중복 확인 완료 후 버튼을 다시 secondary로 변경
+                        checkBtn.classList.remove('btn-primary');
+                        checkBtn.classList.add('btn-secondary');
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        usernameMsg.textContent = '서버 오류가 발생했습니다.';
+                        usernameMsg.style.color = 'red';
+                        isUsernameChecked = false;
+                        isUsernameAvailable = false;
+                    });
+            });
+
+            // 2. 아이디 입력 값 변경 감지 (다시 입력하면 중복 확인 상태 초기화)
+            usernameInput.addEventListener('input', () => {
+                isUsernameChecked = false;
+                isUsernameAvailable = false;
+                usernameMsg.textContent = ''; // 메시지 초기화
+
+                // 입력값이 있으면 버튼 스타일을 primary로 변경
+                if (usernameInput.value.trim().length > 0) {
+                    checkBtn.classList.remove('btn-secondary');
+                    checkBtn.classList.add('btn-primary');
+                } else {
+                    checkBtn.classList.remove('btn-primary');
+                    checkBtn.classList.add('btn-secondary');
+                }
+            });
+
+            // 3. 폼 제출 시 최종 확인
+            signupForm.addEventListener('submit', (e) => {
+                if (!isUsernameChecked || !isUsernameAvailable) {
+                    e.preventDefault(); // 폼 제출 막기
+                    alert('아이디 중복 확인을 완료하거나, 사용 가능한 아이디를 선택해야 합니다.');
+                    usernameInput.focus();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

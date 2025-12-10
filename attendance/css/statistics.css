@@ -1,0 +1,119 @@
+.stats-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.stat-box {
+    text-align: center;
+    padding: 1.5rem;
+    background-color: white;
+    border: 2px solid var(--Gray-200);
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.stat-box:hover {
+    border-color: var(--main-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 87, 213, 0.15);
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--Gray-600);
+    margin-bottom: 0.75rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--main-color);
+}
+
+.chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    padding: 2rem;
+}
+
+.chart-placeholder {
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--main-color) 0deg 252deg,
+        #FFA726 252deg 288deg,
+        #EF5350 288deg 306deg,
+        var(--Gray-400) 306deg 360deg
+    );
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-inner {
+    width: 200px;
+    height: 200px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-center-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--Gray-900);
+}
+
+.chart-center-label {
+    font-size: 0.9rem;
+    color: var(--Gray-600);
+}
+
+.chart-legend {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+
+.legend-text {
+    font-size: 0.9rem;
+    color: var(--Gray-700);
+}
+
+@media (max-width: 768px) {
+    .stats-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .chart-placeholder {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .chart-inner {
+        width: 150px;
+        height: 150px;
+    }
+}

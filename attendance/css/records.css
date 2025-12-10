@@ -1,0 +1,33 @@
+.result-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--Gray-50);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+}
+
+/* 날짜 텍스트 */
+.result-date {
+    font-size: 14px;
+    color: var(--Gray-600);
+    margin-bottom: 12px;
+    font-weight: bold;
+}
+
+/* 상세 텍스트들 */
+.result-on,
+.result-off,
+.result-time,
+.result-status {
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.result-on span,
+.result-off span,
+.result-time span {
+    font-weight: 600;
+    color: #111;
+}

@@ -1,0 +1,30 @@
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
+.info-item {
+    padding: 1rem;
+    background-color: var(--Gray-50);
+    border-radius: 6px;
+}
+
+.info-label {
+    font-size: 0.875rem;
+    color: var(--Gray-600);
+    margin-bottom: 0.5rem;
+}
+
+.info-value {
+    font-size: 1.1rem;
+    color: var(--Gray-900);
+    font-weight: 500;
+}
+
+.logout {
+    float: right;
+    color: var(--Gray-600);
+    font-size: 12px;
+    text-decoration: underline;
+}

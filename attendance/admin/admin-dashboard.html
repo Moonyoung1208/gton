@@ -1,0 +1,193 @@
+<?php
+session_start();
+
+
+// 로그인 세션 변수가 설정되지 않았거나 FALSE인 경우
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
+    // 세션이 없으면 로그인 페이지로 강제 이동
+    header("Location: admin-login.html");
+    exit;
+}
+require_once '../config.php';
+
+?>
+
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드 - 근태ON</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="./css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+        integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">근태ON 관리자</div>
+            <div class="user-info">관리자님 환영합니다</div>
+        </div>
+    </header>
+
+    <nav class="nav">
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="admin-dashboard.html" class="nav-link active">
+                    <i class="fa-solid fa-chart-line"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-employees.html" class="nav-link">
+                    <i class="fa-solid fa-users"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-records.html" class="nav-link">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-settings.html" class="nav-link">
+                    <i class="fa-solid fa-gear"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <section class="section">
+            <h2 class="section-title">전체 통계</h2>
+            <div class="admin-stats">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-label">전체 직원</div>
+                    <div class="admin-stat-value">45명</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-label">금일 출근</div>
+                    <div class="admin-stat-value">42명</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-label">금일 지각</div>
+                    <div class="admin-stat-value">3명</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-label">금일 결근</div>
+                    <div class="admin-stat-value">0명</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">부서별 현황</h2>
+            <div class="summary-table-wrapper">
+                <table class="table summary-table">
+                    <thead>
+                        <tr>
+                            <th>부서</th>
+                            <th>인원</th>
+                            <th>출근</th>
+                            <th>지각</th>
+                            <th>결근</th>
+                            <th>출근율</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>개발팀</td>
+                            <td>15명</td>
+                            <td>14명</td>
+                            <td>1명</td>
+                            <td>0명</td>
+                            <td>93%</td>
+                        </tr>
+                        <tr>
+                            <td>디자인팀</td>
+                            <td>8명</td>
+                            <td>8명</td>
+                            <td>0명</td>
+                            <td>0명</td>
+                            <td>100%</td>
+                        </tr>
+                        <tr>
+                            <td>기획팀</td>
+                            <td>10명</td>
+                            <td>9명</td>
+                            <td>1명</td>
+                            <td>0명</td>
+                            <td>90%</td>
+                        </tr>
+                        <tr>
+                            <td>마케팅팀</td>
+                            <td>7명</td>
+                            <td>7명</td>
+                            <td>0명</td>
+                            <td>0명</td>
+                            <td>100%</td>
+                        </tr>
+                        <tr>
+                            <td>인사팀</td>
+                            <td>5명</td>
+                            <td>4명</td>
+                            <td>1명</td>
+                            <td>0명</td>
+                            <td>80%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">실시간 출퇴근 현황</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>이름</th>
+                        <th>부서</th>
+                        <th>출근시각</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>김철수</td>
+                        <td>개발팀</td>
+                        <td>08:55</td>
+                        <td><span class="badge badge-success">정상</span></td>
+                    </tr>
+                    <tr>
+                        <td>이영희</td>
+                        <td>디자인팀</td>
+                        <td>09:00</td>
+                        <td><span class="badge badge-success">정상</span></td>
+                    </tr>
+                    <tr>
+                        <td>박민수</td>
+                        <td>기획팀</td>
+                        <td>09:15</td>
+                        <td><span class="badge badge-warning">지각</span></td>
+                    </tr>
+                    <tr>
+                        <td>정수현</td>
+                        <td>마케팅팀</td>
+                        <td>08:50</td>
+                        <td><span class="badge badge-success">정상</span></td>
+                    </tr>
+                    <tr>
+                        <td>홍길동</td>
+                        <td>개발팀</td>
+                        <td>09:10</td>
+                        <td><span class="badge badge-warning">지각</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</body>
+
+</html>

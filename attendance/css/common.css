@@ -238,7 +238,7 @@ input[type="email"] {
     input[type="time"],
     input[type="date"] {
         width: 100%;
-        -webkit-appearance: none;
+        appearance: none;
         color: var(--Gray-900) !important;
     }
 }

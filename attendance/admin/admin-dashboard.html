@@ -27,37 +27,49 @@ require_once '../config.php';
 </head>
 
 <body>
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">근태ON 관리자</div>
-            <div class="user-info">관리자님 환영합니다</div>
+    <div class="admin-menu">
+        <div class="admin-nav-link">
+            <i class="fa-solid fa-bars" id="menuOpen"></i>
         </div>
-    </header>
+    </div>
 
-    <nav class="nav">
-        <ul class="nav-list">
-            <li class="nav-item">
-                <a href="admin-dashboard.html" class="nav-link active">
-                    <i class="fa-solid fa-chart-line"></i>
+    <nav class="admin-nav" id="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-title font-godo">관리자 메뉴</span>
+            <i class="fa-solid fa-xmark" id="menuClose"></i>
+        </div>
+
+        <ul class="admin-nav-list">
+            <li class="admin-nav-item">
+                <a href="admin-dashboard.html" class="admin-nav-link active">
+                    <i class="fa-solid fa-chart-line"></i> 대시보드
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="admin-employees.html" class="nav-link">
-                    <i class="fa-solid fa-users"></i>
+            <li class="admin-nav-item">
+                <a href="admin-employees.html" class="admin-nav-link">
+                    <i class="fa-solid fa-users"></i> 직원관리
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="admin-records.html" class="nav-link">
-                    <i class="fa-solid fa-calendar-days"></i>
+            <li class="admin-nav-item">
+                <a href="admin-records.html" class="admin-nav-link">
+                    <i class="fa-solid fa-calendar-days"></i> 부서관리
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="admin-settings.html" class="nav-link">
-                    <i class="fa-solid fa-gear"></i>
+            <li class="admin-nav-item">
+                <a href="admin-settings.html" class="admin-nav-link">
+                    <i class="fa-solid fa-gear"></i> 전체설정
                 </a>
             </li>
         </ul>
+
+        <div class="sidebar-footer">
+            <a href="logout.php" class="logout-btn">
+                <i class="fa-solid fa-right-from-bracket"></i> 로그아웃
+            </a>
+        </div>
     </nav>
+
+    <div class="sidebar-overlay" id="overlay"></div>
 
     <main class="container">
         <section class="section">
@@ -188,6 +200,7 @@ require_once '../config.php';
             </table>
         </section>
     </main>
+    <script src="./js/nav.js"></script>
 </body>
 
 </html>

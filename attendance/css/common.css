@@ -72,25 +72,16 @@ body {
     grid-template-columns: repeat(4, 1fr);
 }
 
-.nav-item {
-    flex: 1;
-}
-
 .nav-link {
-    display: block;
-    padding: 1rem;
-    text-align: center;
+    display: flex;
+    padding: 1rem 1rem 1.5rem;
+    justify-content: center;
+    align-items: center;
     font-size: 1.5rem;
-    text-decoration: none;
-    color: var(--Gray-600);
-    transition: all 0.3s;
-    border-bottom: 3px solid transparent;
 }
 
-.nav-link:hover,
 .nav-link.active {
     color: var(--main-color);
-    border-bottom-color: var(--main-color);
 }
 
 /* Container */
@@ -312,6 +303,11 @@ input[type="email"] {
 .badge-gray {
     background-color: var(--Gray-200);
     color: var(--Gray-800);
+}
+
+.badge-primary {
+    background-color: var(--main-color);
+    color: #fff;
 }
 
 /* chips */

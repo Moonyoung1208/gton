@@ -31,3 +31,89 @@
     font-weight: 600;
     color: #111;
 }
+
+.badge-wrap {
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.calendar-wrap {
+    background-color: #fff;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--Gray-50);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.fc table {
+    font-size: 12px !important;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.25rem;
+}
+
+.fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.fc .fc-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50px;
+    line-height: 1;
+}
+
+.fc .fc-button-primary {
+    background-color: var(--main-color);
+}
+
+.fc .fc-button-primary:hover {
+    background-color: var(--main-700);
+}
+
+.fc .fc-bg-event {
+    opacity: 1 !important;
+}
+
+/* 오늘 배경색 */
+.fc .fc-daygrid-day.fc-day-today {
+    background-color: var(--main-50);
+}
+
+/* 지각 배경색 */
+td.late-bg {
+    background-color: #FFF3E0 !important;
+}
+
+/* 결근 배경색 */
+td.absent-bg {
+    background-color: #FFEBEE !important;
+}
+
+/* 휴일 배경색 */
+td.gray-bg {
+    background-color: var(--Gray-100) !important;
+}
+
+/* 정상 배경색 */
+td.normal-bg {
+    background-color: #E8F5E9 !important;
+}
+
+/* 오늘 날짜 표시가 배경색과 겹칠 경우를 대비한 스타일 */
+.fc .fc-daygrid-day.fc-day-today {
+    background-color: transparent !important;
+    background-color: transparent !important;
+    border: 2px solid var(--main-color);
+    /* 배경은 데이터 색상을 따르도록 함 */
+}

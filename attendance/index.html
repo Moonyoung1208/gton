@@ -23,7 +23,9 @@
 
     <!-- SweetAlert2 Library -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+    <style>
+        .swal2-popup .swal2-modal swal2-icon-error swal2-show
+    </style>
 </head>
 
 <body>
@@ -103,7 +105,7 @@
                             icon: 'error',
                             title: '로그인 실패',
                             text: data.message,
-                            confirmButtonColor: '#your-main-color' // CSS 변수 대신 실제 색상코드 권장
+                            confirmButtonColor: '#3457D5' // CSS 변수 대신 실제 색상코드 권장
                         });
                         // 실패 시 버튼 다시 활성화
                         submitBtn.disabled = false;

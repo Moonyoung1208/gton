@@ -1,4 +1,120 @@
 /* Admin Dashboard Stats */
+
+.admin-nav {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    /* 사이드바 너비만큼 왼쪽으로 숨김 */
+    width: 280px;
+    height: 100%;
+    background-color: white;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    transition: left 0.3s ease-in-out;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 사이드바 활성화 상태 */
+.admin-nav.active {
+    left: 0;
+}
+
+/* 사이드바 내부 헤더 */
+.sidebar-header {
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--Gray-200);
+}
+
+.sidebar-title {
+    font-size: 1.25rem;
+    color: var(--main-color);
+}
+
+#menuClose {
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--Gray-600);
+}
+
+/* 메뉴 리스트 */
+.admin-nav-list {
+    padding: 1rem 0;
+    flex: 1;
+}
+
+.admin-menu > .admin-nav-link {
+    width: fit-content;
+    background-color: var(--main-50);
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.admin-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    gap: 12px;
+    color: var(--Gray-800);
+    transition: 0.3s;
+}
+
+.admin-nav-link i {
+    width: 20px;
+    text-align: center;
+}
+
+.admin-nav-link:hover,
+.admin-nav-link.active {
+    background-color: var(--main-50);
+    color: var(--main-color);
+    font-weight: 600;
+}
+
+/* 푸터/로그아웃 */
+.sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--Gray-200);
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0.75rem;
+    background-color: var(--Gray-100);
+    border-radius: 6px;
+    color: var(--Gray-600);
+    font-size: 0.9rem;
+}
+
+/* 오버레이 (배경 어둡게) */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+
+/* 메뉴 열기 버튼 스타일 */
+.admin-menu {
+    padding: 1rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
 .admin-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -486,6 +602,7 @@
     .records-table thead {
         display: none;
     }
+
     .table.records-table td {
         padding: 12px;
         border-bottom: 1px solid #f1f1f1;
@@ -494,7 +611,7 @@
     .table.records-table tbody tr {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 0  1.5rem;
+        gap: 0 1.5rem;
         margin-bottom: 0.5rem;
         border-radius: 12px;
         padding: 0.5rem 1rem;
@@ -537,6 +654,7 @@
     .category-search input {
         width: 70%;
     }
+
     .category-search button {
         width: 28%;
     }

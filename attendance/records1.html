@@ -1,69 +1,116 @@
 <?php
+// records.html 파일 상단
+
 session_start();
+
 if (!isset($_SESSION['user_id']) || $_SESSION['logged_in'] !== TRUE) {
-    header("Location: ./index.html"); exit;
+    header("Location: ./index.html"); 
+    exit;
 }
+
 require_once 'config.php';
 
 $current_user_id = $_SESSION['user_id'];
-$conn = @connectDB();
+$user_name = $_SESSION['user_name'];
+$user_id = $_SESSION['user_id']; 
+$current_date = date("Y-m-d");
 
-// --- 1. 상태 매핑 테이블 (공통 사용) ---
-$statusMap = [
-    'normal' => '정상',
-    'late' => '지각',
-    'early' => '조퇴',
-    'early_leave' => '조퇴', // 혹시 모를 오타 대비
-    'absent' => '결근'
-];
-
-// --- 2. 하단 리스트 조회 (필터 적용된 5개) ---
+// 1. GET 파라미터 및 기본값 설정 (일주일 전 ~ 오늘)
 $statusFilter = $_GET['status'] ?? '전체';
-$currentStartDate = $_GET['startDate'] ?? date('Y-m-d', strtotime('-7 days'));
-$currentEndDate = $_GET['endDate'] ?? date('Y-m-d');
+if (isset($_GET['status']) && $_GET['status'] === '') {
+    $statusFilter = ''; 
+}
+
+$today = date('Y-m-d');
+$oneWeekAgo = date('Y-m-d', strtotime('-7 days')); 
+// URL에 파라미터가 없으면 '일주일 전'부터 '오늘'까지를 기본값으로 사용
+$currentStartDate = $_GET['startDate'] ?? $oneWeekAgo; 
+$currentEndDate = $_GET['endDate'] ?? $today;     
 
 $records = [];
-if ($conn && $statusFilter !== '') {
-    $sql_conditions = "user_id = ? AND work_date BETWEEN ? AND ?";
-    $params = [$current_user_id, $currentStartDate, $currentEndDate];
-    $types = "iss";
+$conn = @connectDB();
 
+if (!$conn) {
+    echo "<p class='error-message'>데이터베이스 연결에 실패했습니다.</p>";
+} elseif ($statusFilter === '') {
+    // $records는 빈 배열로 유지되어 아래 HTML에서 안내 문구가 표시됩니다.
+    if ($conn) {
+    $conn->close(); // 불필요한 DB 연결 닫기
+    }
+} else {
+    // 2. DB 상태 코드로 변환 및 SQL 쿼리 조건 설정
+    $dbStatus = null;
+    
+    // 기본 조건: user_id와 날짜 범위 (필수)
+    $types = "iss"; // user_id(i), startDate(s), endDate(s)
+    $params = [$current_user_id, $currentStartDate, $currentEndDate];
+    $sql_conditions = "user_id = ? AND work_date BETWEEN ? AND ?";
+
+    // 상태 필터 추가 (선택적)
     if ($statusFilter !== '전체') {
-        $dbStatus = match($statusFilter) {
-            '정상' => 'normal',
-            '지각' => 'late',
-            '조퇴' => 'early',
-            '결근' => 'absent',
-            default => null
-        };
+        switch ($statusFilter) {
+            case '정상': $dbStatus = 'normal'; break;
+            case '지각': $dbStatus = 'late'; break;
+            case '조퇴': $dbStatus = 'early'; break;
+            case '결근': $dbStatus = 'absent'; break;
+        }
+        
         if ($dbStatus) {
+            // 상태 필터 조건 추가
             $sql_conditions .= " AND status = ?";
-            $params[] = $dbStatus;
-            $types .= "s";
+            $types .= "s"; // status (string) 추가
+            $params[] = $dbStatus; 
         }
     }
 
-    $sql = "SELECT work_date, check_in_time, check_out_time, work_hours, status 
-            FROM records WHERE $sql_conditions ORDER BY work_date DESC LIMIT 5";
+
+    // 3. SQL 쿼리 작성 (날짜 + 상태 모두 적용)
+    $sql = "
+        SELECT 
+            work_date, check_in_time, check_out_time, work_hours, status
+        FROM 
+            records
+        WHERE 
+            {$sql_conditions} 
+        ORDER BY work_date DESC
+        LIMIT 5
+    ";
+
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param($types, ...$params);
+    
+    // 4. 파라미터 바인딩 및 실행
+    $stmt->bind_param($types, ...$params); 
     $stmt->execute();
     $result = $stmt->get_result();
+    
+    $statusMap = [
+        'normal' => '정상',
+        'late' => '지각',
+        'early_leave' => '조퇴',
+        'absent' => '결근'
+    ];
+    
     while ($row = $result->fetch_assoc()) {
         $records[] = [
             'date' => $row['work_date'],
-            'dayOfWeek' => date('D', strtotime($row['work_date'])),
-            'onTime' => $row['check_in_time'] ? substr($row['check_in_time'], 0, 5) : '미등록',
+            'dayOfWeek' => date('D', strtotime($row['work_date'])), 
+            'onTime' => substr($row['check_in_time'], 0, 5) ?? '미등록', 
             'offTime' => $row['check_out_time'] ? substr($row['check_out_time'], 0, 5) : '근무중',
             'workTime' => $row['work_hours'] ?? 'N/A',
             'status' => $statusMap[$row['status']] ?? '오류',
         ];
     }
+
+    $stmt->close();
+    $conn->close();
 }
 
-// --- 3. 달력 전체 데이터 조회 (LIMIT 없음!) ---
+// 달력에 표시할 모든 데이터를 담을 배열
 $calendarEvents = [];
+$conn = @connectDB(); // 위에서 닫혔을 수 있으므로 확인
+
 if ($conn) {
+    // 현재 사용자의 전체 근태 기록 조회 (달력용)
     $calSql = "SELECT work_date, check_in_time, check_out_time, work_hours, status FROM records WHERE user_id = ?";
     $calStmt = $conn->prepare($calSql);
     $calStmt->bind_param("i", $current_user_id);
@@ -71,29 +118,28 @@ if ($conn) {
     $calResult = $calStmt->get_result();
 
     while ($row = $calResult->fetch_assoc()) {
-        $s = $row['status'];
-        // 클래스명 매핑 (CSS와 일치해야 함)
-        $className = match($s) {
+        // 상태별 CSS 클래스 매핑
+        $className = match($row['status']) {
             'normal' => 'normal-bg',
             'late' => 'late-bg',
-            'early', 'early_leave' => 'late-bg', // 조퇴도 노란색
+            'early_leave' => 'late-bg', // 조퇴도 지각과 같은 색상 혹은 별도 지정
             'absent' => 'absent-bg',
             default => ''
         };
 
         $calendarEvents[] = [
             'start' => $row['work_date'],
-            'display' => 'background',
+            'display' => 'background', // 배경색으로 표시
             'classNames' => [$className],
+            // 확장 데이터 (클릭 시 사용)
             'extendedProps' => [
-                'onTime' => $row['check_in_time'] ? substr($row['check_in_time'], 0, 5) : '미등록',
+                'onTime' => substr($row['check_in_time'], 0, 5),
                 'offTime' => $row['check_out_time'] ? substr($row['check_out_time'], 0, 5) : '근무중',
                 'workTime' => $row['work_hours'] ?? 'N/A',
-                'status' => $statusMap[$s] ?? '오류'
+                'status' => $statusMap[$row['status']] ?? '오류'
             ]
         ];
     }
-    $conn->close();
 }
 ?>
 
@@ -114,6 +160,119 @@ if ($conn) {
 
     <!-- FullCalendar JS -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
+    <style>
+        .fc table {
+            font-size: 12px !important;
+        }
+
+        .fc-theme-standard .fc-scrollgrid,
+        .fc-theme-standard td,
+        .fc-theme-standard th {
+            border: none;
+        }
+
+        .fc-theme-standard td {
+            border-radius: 6px;
+        }
+
+        .fc .fc-daygrid-day-top {
+            justify-content: center;
+            flex-direction: row;
+        }
+
+        .fc-day.fc-day-past.fc-daygrid-day {
+            height: 30px;
+        }
+
+        .fc-daygrid-day-events {
+            display: none;
+        }
+
+        .fc .fc-bg-event {
+            opacity: 1 !important;
+            /* 투명도 해제 */
+        }
+
+        /* 오늘 배경색 */
+        .fc .fc-daygrid-day.fc-day-today {
+            background-color: var(--main-50);
+        }
+
+        /* 지각 배경색 */
+        .fc .fc-daygrid-day.late-bg {
+            background-color: #FFF3E0 !important;
+        }
+
+        /* 결근 배경색 */
+        .fc .fc-daygrid-day.absent-bg {
+            background-color: #FFEBEE !important;
+        }
+
+        /* 휴일 배경색 */
+        .fc .fc-daygrid-day.gray-bg {
+            background-color: var(--Gray-100) !important;
+        }
+
+        /* 정상 배경색 */
+        .fc .fc-daygrid-day.normal-bg {
+            background-color: #E8F5E9 !important;
+        }
+
+        /* 오늘 날짜 표시가 배경색과 겹칠 경우를 대비한 스타일 */
+        .fc .fc-daygrid-day.fc-day-today {
+            background-color: transparent;
+            /* 배경은 데이터 색상을 따르도록 함 */
+        }
+
+        /* 2. 각 날짜 칸의 높이 조절 */
+        .fc .fc-daygrid-day-frame {
+            min-height: 40px !important;
+            /* 칸의 최소 높이를 원하는 만큼 줄이세요 */
+        }
+
+        /* 3. 날짜 숫자 스타일 */
+        .fc .fc-daygrid-day-number {
+            padding: 2px 0 !important;
+            font-size: 11px !important;
+            line-height: 40px;
+        }
+
+        /* 4. 이벤트(점 또는 글자)가 들어가는 영역 높이 줄임 */
+        .fc .fc-daygrid-day-events {
+            padding: 0 !important;
+        }
+
+        /* 5. 요일 헤더 부분 높이 줄임 */
+        .fc .fc-col-header-cell-cushion {
+            padding: 4px 0 !important;
+            font-size: 12px;
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 1.25rem !important;
+        }
+
+        .fc .fc-button-primary {
+            background-color: var(--main-color);
+            color: #fff;
+            border: none;
+        }
+
+        .fc .fc-button-primary:disabled {
+            background-color: var(--Gray-200);
+            color: var(--Gray-600);
+        }
+
+        .fc .fc-button-primary:hover {
+            background-color: var(--main-900);
+        }
+
+        .fc-toolbar-chunk {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+    </style>
 </head>
 
 <body>
@@ -150,7 +309,7 @@ if ($conn) {
                     <span class="badge badge-warning">지각</span>
                     <span class="badge badge-danger">결근</span>
                     <span class="badge badge-gray">휴일</span>
-                    <span class="badge badge-primary" id="go-today">오늘로</span>
+                    <span class="badge badge-primary" id="go-today">오늘</span>
                 </div>
                 <div id='calendar'></div>
             </div>
@@ -158,7 +317,7 @@ if ($conn) {
                 document.addEventListener('DOMContentLoaded', function () {
                     var calendarEl = document.getElementById('calendar');
 
-                    // PHP 데이터를 JS 객체로 변환
+                    // PHP 데이터를 JS 객체로 변환 (데이터가 없을 경우를 대비해 빈 배열 처리)
                     var eventsData = <?php echo json_encode($calendarEvents?: []); ?>;
 
                     var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -174,52 +333,35 @@ if ($conn) {
                             return `${date.date.year}년 ${date.date.month + 1}월`;
                         },
                         dayCellContent: function (info) {
+                            // '1일'에서 '일' 제거
                             return { html: info.dayNumberText.replace('일', '') };
                         },
 
-                        events: eventsData,
-
-                        eventClassNames: function (arg) {
-                            if (arg.event.display === 'background') {
-                                return arg.event.classNames;
-                            }
-                        },
-
+                        // 1. 날짜 셀이 생성될 때 실행: 셀 자체에 배경색 클래스 주입
                         dayCellDidMount: function (arg) {
-                            // 1. 날짜 문자열 생성 (시차 문제 방지 포맷)
-                            var d = arg.date;
-                            var dateStr = d.getFullYear() + '-' +
-                                String(d.getMonth() + 1).padStart(2, '0') + '-' +
-                                String(d.getDate()).padStart(2, '0');
+                            // FullCalendar의 date 객체를 YYYY-MM-DD 형식의 문자열로 변환
+                            var year = arg.date.getFullYear();
+                            var month = String(arg.date.getMonth() + 1).padStart(2, '0');
+                            var day = String(arg.date.getDate()).padStart(2, '0');
+                            var dateStr = `${year}-${month}-${day}`;
 
-                            // 2. 해당 날짜 데이터 찾기
+                            // 해당 날짜의 데이터가 있는지 찾기
                             var record = eventsData.find(e => e.start === dateStr);
 
-                            // 3. 기존에 묻어있을 수 있는 클래스 모두 제거 (초기화)
-                            arg.el.classList.remove('normal-bg', 'late-bg', 'absent-bg');
-
-                            // 4. 데이터가 있을 때만 클래스 다시 추가
-                            if (record && record.classNames && record.classNames[0]) {
-                                // 약간의 지연(0ms)을 주어 FullCalendar의 기본 렌더링 이후에 실행되도록 보장
-                                setTimeout(function () {
-                                    arg.el.classList.add(record.classNames[0]);
-                                }, 0);
+                            if (record && record.classNames) {
+                                // TD 엘리먼트에 직접 클래스 추가 (normal-bg, late-bg 등)
+                                arg.el.classList.add(record.classNames[0]);
                             }
                         },
 
-                        eventDidMount: function (info) {
-                            if (info.event.display === 'background') {
-                                // 기본 fc-bg-event의 스타일을 무력화하고 싶을 때 사용
-                                info.el.style.backgroundColor = 'transparent';
-                            }
-                        },
-
+                        // 2. 클릭 시 하단 상세창 노출
                         dateClick: function (info) {
                             var record = eventsData.find(e => e.start === info.dateStr);
                             var detailBox = document.getElementById('day-detail');
 
                             if (record) {
                                 var props = record.extendedProps;
+
                                 document.getElementById('det-date').innerText = info.dateStr;
                                 document.getElementById('det-on').innerText = props.onTime;
                                 document.getElementById('det-off').innerText = props.offTime;
@@ -228,10 +370,11 @@ if ($conn) {
                                 const statusEl = document.getElementById('det-status');
                                 statusEl.innerText = props.status;
 
+                                // 상태별 배지 색상 업데이트
                                 statusEl.className = 'badge';
                                 if (props.status === '정상') statusEl.classList.add('badge-success');
                                 else if (props.status === '결근') statusEl.classList.add('badge-danger');
-                                else statusEl.classList.add('badge-warning');
+                                else statusEl.classList.add('badge-warning'); // 지각, 조퇴
 
                                 detailBox.style.display = 'block';
                                 detailBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -243,8 +386,9 @@ if ($conn) {
 
                     calendar.render();
 
+                    // 오늘 버튼
                     document.getElementById('go-today').addEventListener('click', function () {
-                        calendar.today();
+                        calendar.today(); // 달력을 오늘 날짜가 있는 달로 이동
                     });
                 });
             </script>

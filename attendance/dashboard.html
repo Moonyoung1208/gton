@@ -151,6 +151,13 @@ $day_of_week = date('w');
 $weekdays = ['일', '월', '화', '수', '목', '금', '토'];
 $display_current_date_kor = date("Y년 m월 d일 ") . $weekdays[$day_of_week] . "요일";
 
+// 정상출근율 퍼센테이지 계산
+$attendance_percent = 0;
+if ($summary_data['total_work_days'] > 0) {
+    // (정상출근일 / 총 근무일) * 100
+    $attendance_percent = round(($summary_data['normal_days'] / $summary_data['total_work_days']) * 100);
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -251,6 +258,20 @@ $display_current_date_kor = date("Y년 m월 d일 ") . $weekdays[$day_of_week] . 
 
         <section class="section">
             <h2 class="section-title">이번 달 근태 요약</h2>
+            <!-- 정상 출근율 바 -->
+            <div class="progress-wrap">
+                <div class="progress-info">
+                    <!-- <span class="progress-label">정상출근 달성률</span> -->
+                    <span class="progress-percent">
+                        정상출근
+                        <?= $attendance_percent; ?>%
+                    </span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: <?= $attendance_percent; ?>%;"></div>
+                </div>
+            </div>
+
             <div class="summary-grid">
                 <div class="summary-item card">
                     <div class="summary-label">정상출근일</div>

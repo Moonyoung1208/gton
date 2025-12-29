@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="./attendance/css/font.css">
+    <link rel="stylesheet" href="./attendance/css/common.css">
+    <link rel="stylesheet" href="./attendance/css/onboarding.css">
+    <title>근태 ON</title>
+</head>
+
+<body>
+    <div class="wrap onboard">
+        <div class="img-box">
+            <img src="./attendance/assets/onboard1.png" alt="출퇴근 관리">
+        </div>
+        <div class="box">
+            <h1>출퇴근 관리 아직도 번거로우신가요?</h1>
+            <p>매일 반복되는 근태 관리의 번거로움</p>
+            <div class="dots">
+                <span class="active"></span>
+                <span></span>
+                <span></span>
+            </div>
+            <a href="#" id="nextBtn" class="btn btn-primary">다음</a>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const nextBtn = document.getElementById('nextBtn');
+            const title = document.querySelector('.box h1');
+            const desc = document.querySelector('.box p');
+            const dots = document.querySelectorAll('.dots span');
+            const img = document.querySelector('.img-box img');
+
+            // 변경될 컨텐츠 데이터 배열
+            const onboardData = [
+                {
+                    img: "./attendance/assets/onboard1.png",
+                    title: "출퇴근 관리 아직도 번거로우신가요?",
+                    desc: "매일 반복되는 근태 관리의 번거로움"
+                },
+                {
+                    img: "./attendance/assets/onboard2.png", // 두 번째 이미지 경로
+                    title: "간편한 체크로 시작하세요",
+                    desc: "모바일에서 터치 한 번으로 출근 완료"
+                },
+                {
+                    img: "./attendance/assets/onboard3.png", // 세 번째 이미지 경로
+                    title: "근태 기록을 한눈에 확인",
+                    desc: "나의 월간 근태 현황을 깔끔한 통계로"
+                }
+            ];
+
+            let currentIndex = 0;
+
+            nextBtn.addEventListener('click', function (e) {
+                // a 태그의 기본 이동 막기
+                e.preventDefault();
+
+                // 1. 인덱스 증가
+                currentIndex++;
+
+                // 2. 마지막 단계인지 확인
+                if (currentIndex < onboardData.length) {
+                    // 데이터 교체
+                    title.textContent = onboardData[currentIndex].title;
+                    desc.textContent = onboardData[currentIndex].desc;
+                    img.src = onboardData[currentIndex].img;
+
+                    // dots 상태 변경
+                    dots.forEach((dot, index) => {
+                        if (index === currentIndex) {
+                            dot.classList.add('active');
+                        } else {
+                            dot.classList.remove('active');
+                        }
+                    });
+
+                    // 마지막 페이지라면 버튼 텍스트 변경
+                    if (currentIndex === onboardData.length - 1) {
+                        nextBtn.textContent = "시작하기";
+                        // 마지막 클릭 후 로그인 페이지로 이동
+                        nextBtn.href = "./attendance/index.html";
+                    }
+                } else {
+                    // "시작하기" 상태에서 클릭 시 페이지 이동
+                    location.href = nextBtn.getAttribute('href');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

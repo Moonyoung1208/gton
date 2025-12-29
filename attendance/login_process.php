@@ -39,7 +39,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_name'] = $user['name'];
             $_SESSION['logged_in'] = TRUE;
 
-            // echo "<script>alert('로그인 성공'); window.location.href='dashboard.html';</script>";
+            echo "<script>alert('로그인 성공'); window.location.href='dashboard.html';</script>";
 
         } else {
             // 비밀번호 불일치
@@ -56,7 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 } else {
     // POST 요청이 아닌 경우 (직접 접근 방지)
-    header("Location: welcome.html");
+    header("Location: index.html");
     exit;
 }
 

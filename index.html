@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./attendance/css/font.css">
+    <link rel="stylesheet" href="./attendance/css/common.css">
+    <link rel="stylesheet" href="./attendance/css/onboarding.css">
+    <title>근태 ON</title>
+</head>
+
+<body>
+    <div class="wrap font-godo">
+        <h1>근태 ON</h1>
+        <p>쉽고 빠른 근태관리의 시작</p>
+    </div>
+    <script>
+
+        // 화면 fade out 후 onboarding 페이지로 이동
+        document.addEventListener('DOMContentLoaded', function () {
+            const wrap = document.querySelector('.wrap');
+            setTimeout(function () {
+                // 화면 fade out
+                wrap.classList.add('fade');
+                setTimeout(function () {
+                    // 페이지 이동
+                    location.href = "onboarding.html";
+                }, 500);
+            }, 3000);
+        })
+
+        // 화면 클릭시 바로 이동
+        wrap.addEventListener('click', function () {
+            location.href = "onboarding.html";
+        });
+    </script>
+</body>
+
+</html>

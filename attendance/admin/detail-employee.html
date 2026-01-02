@@ -1,0 +1,217 @@
+<?php
+session_start();
+require_once '../config.php';
+
+// 관리자 권한 확인
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
+    header("Location: admin-login.html");
+    exit;
+}
+
+$conn = connectDB();
+
+// 1. URL로부터 직원 ID 가져오기
+$user_id = $_GET['id'] ?? '';
+
+if (empty($user_id)) {
+    echo "<script>alert('잘못된 접근입니다.'); history.back();</script>";
+    exit;
+}
+
+// 2. 직원 정보 조회 (부서명 JOIN)
+$sql = "SELECT u.*, d.dept_name 
+        FROM users u 
+        LEFT JOIN departments d ON u.dept_id = d.id 
+        WHERE u.user_id = ?";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+
+if (!$user) {
+    echo "<script>alert('존재하지 않는 직원입니다.'); history.back();</script>";
+    exit;
+}
+
+$stats_sql = "SELECT 
+                COUNT(*) as total_work,
+                SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late_count
+              FROM records 
+              WHERE user_id = ? AND MONTH(work_date) = MONTH(CURRENT_DATE())";
+$stmt_stats = $conn->prepare($stats_sql);
+$stmt_stats->bind_param("i", $user_id);
+$stmt_stats->execute();
+$stats = $stmt_stats->get_result()->fetch_assoc();
+
+// 4. 최근 출퇴근 기록 10건 조회
+$record_sql = "SELECT * FROM records 
+               WHERE user_id = ? 
+               ORDER BY work_date DESC LIMIT 10";
+$stmt_record = $conn->prepare($record_sql);
+$stmt_record->bind_param("i", $user_id);
+$stmt_record->execute();
+$records = $stmt_record->get_result();
+
+?>
+
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>직원 상세 정보 - 근태ON</title>
+    <link rel="stylesheet" href="../css/font.css">
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/employee.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+</head>
+
+<body>
+    <div class="admin-menu">
+        <div class="admin-nav-link" onclick="history.back()">
+            <i class="fa-solid fa-chevron-left"></i>
+        </div>
+    </div>
+
+    <main class="container">
+        <header class="page-header">
+            <h2 class="section-title">직원 상세 정보</h2>
+        </header>
+
+        <div class="employee-card">
+            <div class="emp-info-group">
+                <div class="emp-row">
+                    <span class="emp-label">성명</span>
+                    <span class="emp-value">
+                        <strong>
+                            <?php echo htmlspecialchars($user['name']); ?>
+                        </strong>
+                    </span>
+                </div>
+
+                <div class="emp-row">
+                    <span class="emp-label">아이디</span>
+                    <span class="emp-value">
+                        <strong>
+                            <?php echo htmlspecialchars($user['username']); ?>
+                        </strong>
+                    </span>
+                </div>
+
+                <div class="emp-row">
+                    <span class="emp-label">이메일</span>
+                    <span class="emp-value">
+                        <strong>
+                            <?php echo htmlspecialchars($user['email']); ?>
+                        </strong>
+                    </span>
+                </div>
+                <div class="emp-row">
+                    <span class="emp-label">부서</span>
+                    <span class="emp-value">
+                        <strong>
+                            <?php echo htmlspecialchars($user['dept_name'] ?? '미지정'); ?>
+                        </strong>
+                    </span>
+                </div>
+
+                <div class="emp-row">
+                    <span class="emp-label">직급</span>
+                    <span class="emp-value">
+                        <strong>
+                            <?php echo htmlspecialchars($user['position']); ?>
+                        </strong>
+                    </span>
+                </div>
+
+                <div class="emp-row">
+                    <span class="emp-label">입사일</span>
+                    <span class="emp-value">
+                        <strong>
+                            <?php echo $user['join_date']; ?>
+                        </strong>
+                    </span>
+                </div>
+                <div class="emp-row">
+                    <span class="emp-label">계정상태</span>
+                    <span class="emp-value">
+                        <?php if($user['status'] == 'active'): ?>
+                        <span class="badge badge-success">재직중</span>
+                        <?php else: ?>
+                        <span class="badge badge-danger">퇴사</span>
+                        <?php endif; ?>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-subtitle">이번 달 근태 요약</h3>
+        <div class="stats-container grid grid-3">
+            <div class="admin-stat-card">
+                <div>출근일</div>
+                <div>
+                    <?php echo $stats['total_work']; ?>회
+                </div>
+            </div>
+            <div class="admin-stat-card">
+                <div>지각</div>
+                <div>
+                    <?php echo $stats['late_count']; ?>회
+                </div>
+            </div>
+            <div class="admin-stat-card">
+                <div>결근</div>
+                <div>
+                    0 회
+                </div>
+            </div>
+        </div>
+
+        <section class="section">
+            <h3 class="section-subtitle">최근 출퇴근 기록</h3>
+            <div class="record-list">
+                <?php if ($records->num_rows > 0): ?>
+                <?php while($row = $records->fetch_assoc()): ?>
+                <div class="record-item">
+                    <div>
+                        <div>
+                            <?php echo $row['work_date']; ?>
+                        </div>
+                        <div>
+                            출근:
+                            <?php echo substr($row['check_in_time'], 0, 5); ?> |
+                            퇴근:
+                            <?php echo $row['check_out_time'] ? substr($row['check_out_time'], 0, 5) : '-'; ?>
+                        </div>
+                    </div>
+                    <div>
+                        <?php if($row['status'] == 'normal'): ?>
+                        <span class="badge badge-success">정상</span>
+                        <?php elseif($row['status'] == 'late'): ?>
+                        <span class="badge badge-warning">지각</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endwhile; ?>
+                <?php else: ?>
+                <div>기록이 없습니다.</div>
+                <?php endif; ?>
+            </div>
+        </section>
+
+        <div class="action-group">
+            <a href="admin-employees.html" class="btn btn-secondary full">목록으로</a>
+            <a href="admin-employee-edit.php?id=<?php echo $user['user_id']; ?>" class="btn btn-primary full">
+                <i class="fa-solid fa-user-pen"></i> 정보 수정
+            </a>
+        </div>
+    </main>
+
+    <script src="./js/nav.js"></script>
+</body>
+
+</html>

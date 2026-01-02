@@ -149,6 +149,94 @@
     color: var(--main-color);
 }
 
+/* Employee List */
+.employee-search {
+    margin-bottom: 1rem;
+}
+
+.search-wrapper {
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    border: 1px solid var(--Gray-400);
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.search-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--Gray-600);
+}
+
+/* Employee Cards */
+.employee-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.employee-card {
+    background-color: white;
+    border: 1px solid var(--Gray-200);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.employee-card:hover {
+    border-color: var(--main-color);
+    box-shadow: 0 2px 8px rgba(52, 87, 213, 0.1);
+}
+
+.employee-avatar {
+    width: 50px;
+    height: 50px;
+    background-color: var(--main-100);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--main-color);
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.employee-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.employee-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--Gray-900);
+    margin-bottom: 0.25rem;
+}
+
+.employee-dept {
+    font-size: 0.875rem;
+    color: var(--Gray-600);
+}
+
+.employee-status {
+    flex-shrink: 0;
+}
+
+.summary-table {
+    width: 100%;
+}
+
 /* Department Filter */
 .dept-filter {
     display: flex;
@@ -482,6 +570,153 @@
 
 .required {
     color: var(--main-color);
+}
+
+/* 직원 카드 리스트 스타일 */
+.employee-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.employee-card {
+    background: #fff;
+    border: 1px solid var(--Gray-200);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.emp-info-group {
+    flex: 1;
+}
+
+.emp-row {
+    display: flex;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+}
+
+.emp-row:last-child {
+    margin-bottom: 0;
+}
+
+.emp-label {
+    width: 70px;
+    color: var(--Gray-600);
+    font-weight: 500;
+}
+
+.emp-value {
+    color: var(--Gray-900);
+}
+
+.emp-status-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+    margin-left: 10px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--Gray-400);
+}
+
+/* Responsive Design */
+
+@media (max-width: 480px) {
+    .admin-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .admin-stat-value {
+        font-size: 1.5rem;
+    }
+
+    .summary-table {
+        min-width: unset;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .quick-stats {
+        gap: 0.5rem;
+    }
+
+    .modal-content {
+        padding: 1.25rem;
+    }
+
+    .records-table thead {
+        display: none;
+    }
+
+    .table.records-table td {
+        padding: 12px;
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    .table.records-table tbody tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 1.5rem;
+        margin-bottom: 0.5rem;
+        border-radius: 12px;
+        padding: 0.5rem 1rem;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .table.records-table tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        font-size: 14px;
+        border: none;
+    }
+
+    .table.records-table tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--Gray-600);
+    }
+
+    .table.records-table tbody td:last-child {
+        padding-bottom: 0;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dept-list {
+        flex-wrap: wrap;
+        margin-bottom: 0.5rem;
+    }
+
+    .dept-item {
+        padding: 0.5rem;
+    }
+
+    .category-search input {
+        width: 70%;
+    }
+
+    .category-search button {
+        width: 28%;
+    }
 }
 
 .detail-card {

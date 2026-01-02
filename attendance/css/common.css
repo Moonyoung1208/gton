@@ -86,7 +86,8 @@ body {
 
 /* Container */
 .container {
-    max-width: 1200px;
+    width: 100%;
+    max-width: 480px;
     margin: 0 auto;
     padding: 1rem 1rem 7rem;
 }
@@ -131,6 +132,8 @@ body {
 
 .btn.full {
     width: 100%;
+    text-align: center;
+    display: block;
 }
 
 .btn-primary {
@@ -280,7 +283,8 @@ input[type="email"] {
 .badge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
-    border-radius: 12px;
+    text-align: center;
+    border-radius: 20px;
     font-size: 0.875rem;
     font-weight: 500;
 }
@@ -308,6 +312,11 @@ input[type="email"] {
 .badge-primary {
     background-color: var(--main-color);
     color: #fff;
+}
+
+.badge-outline {
+    background-color: #fafafa;
+    border: 2px solid var(--main-color);
 }
 
 /* chips */
@@ -349,4 +358,15 @@ input[type="email"] {
     .nav-item {
         flex: 0 0 50%;
     }
+}
+
+/* sweetalert style */
+div:where(.swal2-container) h2:where(.swal2-title) {
+    font-size: 1.5rem !important    ;
+    font-family: 'Godo' !important;
+    font-weight: bold;
+}
+
+.swal2-input {
+    width: unset !important;
 }

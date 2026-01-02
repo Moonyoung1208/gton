@@ -1,6 +1,7 @@
 <?php
 session_start();
 
+require_once '../config.php';
 
 // 로그인 세션 변수가 설정되지 않았거나 FALSE인 경우
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
@@ -8,7 +9,6 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRU
     header("Location: admin-login.html");
     exit;
 }
-require_once '../config.php';
 
 ?>
 

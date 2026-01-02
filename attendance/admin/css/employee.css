@@ -1,0 +1,50 @@
+.employee-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.employee-card {
+    background: #fff;
+    border: 1px solid var(--Gray-200);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.emp-info-group {
+    flex: 1;
+}
+
+.emp-row {
+    display: flex;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+}
+
+.emp-label {
+    width: 70px;
+    color: var(--Gray-600);
+    font-weight: 500;
+}
+
+.emp-value {
+    color: var(--Gray-900);
+}
+
+.emp-status-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+    margin-left: 10px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--Gray-400);
+}

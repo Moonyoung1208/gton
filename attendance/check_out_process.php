@@ -61,8 +61,6 @@ function calculate_work_hours($in_time, $out_time)
 $work_hours = calculate_work_hours($check_in_time, $check_out_time);
 
 // 5. 최종 근무 상태 결정 (예: 조퇴, 정상)
-// 여기서는 간단히 'working' 상태를 'normal'로 최종 확정한다고 가정.
-// 더 복잡한 로직(퇴근 시간이 기준 시간보다 빠르면 'early_leave' 등)은 필요에 따라 추가
 $final_status = ($record['status'] === 'working') ? 'normal' : $record['status']; // 지각('late')이면 그대로 유지
 
 // 6. DB 업데이트 (퇴근 시각, 위치, 근무 시간, 상태)
@@ -78,12 +76,18 @@ $update_stmt = $conn->prepare($update_sql);
 $update_stmt->bind_param("ssdsi", $check_out_time, $check_out_location, $work_hours, $final_status, $record_id);
 
 if ($update_stmt->execute()) {
-    $work_hours_display = number_format($work_hours, 2); // 8.50 시간 형태로 표시
-    echo "<script>alert('퇴근이 성공적으로 처리되었습니다. 총 근무시간: {$work_hours_display}시간'); window.location.href='dashboard.html';</script>";
+    $work_hours_display = number_format($work_hours, 2);
+    // 성공 시 세션에 상태 저장
+    $_SESSION['status'] = "success";
+    $_SESSION['msg'] = "퇴근 처리가 완료되었습니다.";
+    header("Location: dashboard.html");
 } else {
-    error_log("퇴근 기록 업데이트 실패: " . $update_stmt->error);
-    echo "<script>alert('퇴근 기록 업데이트 중 오류가 발생했습니다.'); window.location.href='dashboard.html';</script>";
+    // 실패 시 세션에 에러 저장
+    $_SESSION['status'] = "error";
+    $_SESSION['msg'] = "퇴근 처리 중 오류가 발생했습니다.";
+    header("Location: dashboard.html");
 }
+exit;
 
 $update_stmt->close();
 $conn->close();

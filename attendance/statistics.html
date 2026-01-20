@@ -1,3 +1,81 @@
+<?php
+session_start();
+if (!isset($_SESSION['user_id']) || $_SESSION['logged_in'] !== TRUE) {
+    header("Location: ./index.html"); exit;
+}
+require_once 'config.php';
+
+$current_user_id = $_SESSION['user_id'];
+$conn = connectDB();
+
+// 날짜 설정
+$startDate = $_GET['startDate'] ?? date('Y-m-01'); // 이번 달 1일
+$endDate = $_GET['endDate'] ?? date('Y-m-t');    // 이번 달 말일
+
+// 현재 연도와 월 설정 (필요 시 GET 파라미터로 변경 가능)
+$target_month = date('Y-m');
+
+// 1. 상태별 카운트 (LIKE 대신 BETWEEN 사용)
+$statusCounts = [
+    'normal' => 0,
+    'late' => 0,
+    'absent' => 0
+];
+
+$sql = "SELECT status, COUNT(*) as cnt FROM records 
+        WHERE user_id = ? AND work_date BETWEEN ? AND ? 
+        GROUP BY status";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("iss", $current_user_id, $startDate, $endDate);
+$stmt->execute();
+$result = $stmt->get_result();
+
+while ($row = $result->fetch_assoc()) {
+    if(isset($statusCounts[$row['status']])) {
+        $statusCounts[$row['status']] = $row['cnt'];
+    }
+}
+
+// 2. 총 근무 시간 계산 (SUM)
+$sql_time = "SELECT SUM(TIME_TO_SEC(work_hours)) as total_seconds FROM records 
+             WHERE user_id = ? AND work_date BETWEEN ? AND ?";
+$stmt_time = $conn->prepare($sql_time);
+$stmt_time->bind_param("iss", $current_user_id, $startDate, $endDate);
+$stmt_time->execute();
+$res_time = $stmt_time->get_result()->fetch_assoc();
+
+$total_seconds = $res_time['total_seconds'] ?? 0;
+$total_hours = floor($total_seconds / 3600);
+$total_mins = floor(($total_seconds % 3600) / 60);
+
+// 3. 차트를 위한 퍼센트 계산
+$total_days = array_sum($statusCounts);
+function getPercent($val, $total) {
+    return ($total > 0) ? round(($val / $total) * 100, 1) : 0;
+}
+
+// 4. 이번 달 평균 출근 시간 계산
+$sql_avg = "SELECT AVG(TIME_TO_SEC(check_in_time)) as avg_seconds 
+            FROM records 
+            WHERE user_id = ? AND work_date BETWEEN ? AND ? AND check_in_time IS NOT NULL";
+$stmt_avg = $conn->prepare($sql_avg);
+$stmt_avg->bind_param("iss", $current_user_id, $startDate, $endDate);
+$stmt_avg->execute();
+$res_avg = $stmt_avg->get_result()->fetch_assoc();
+
+$avg_seconds = $res_avg['avg_seconds'] ?? 0;
+
+if ($avg_seconds > 0) {
+    $avg_hours = floor($avg_seconds / 3600);
+    $avg_mins = floor(($avg_seconds % 3600) / 60);
+    // HH:mm 형식으로 포맷팅
+    $display_avg_time = sprintf("%02d:%02d", $avg_hours, $avg_mins);
+} else {
+    $display_avg_time = "--:--";
+}
+
+?>
+
 <!DOCTYPE html>
 <html lang="ko">
 
@@ -17,22 +95,22 @@
     <nav class="nav">
         <ul class="nav-list">
             <li class="nav-item">
-                <a href="dashboard.html" class="admin-nav-link">
+                <a href="dashboard.html" class="nav-link">
                     <i class="fa-regular fa-house"></i>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="records.html" class="admin-nav-link">
+                <a href="records.html" class="nav-link">
                     <i class="fa-regular fa-calendar"></i>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="statistics.html" class="admin-nav-link active">
+                <a href="statistics.html" class="nav-link active">
                     <i class="fa-solid fa-chart-column"></i>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="mypage.html" class="admin-nav-link">
+                <a href="mypage.html" class="nav-link">
                     <i class="fa-solid fa-gear"></i>
                 </a>
             </li>
@@ -48,11 +126,11 @@
                     <div class="date-inputs">
                         <div class="form-group">
                             <label class="form-label" for="start-date">시작일</label>
-                            <input type="date" id="start-date" class="form-input" value="2024-11-01">
+                            <input type="date" id="start-date" class="form-input" value="<?= $startDate ?>">
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="end-date">종료일</label>
-                            <input type="date" id="end-date" class="form-input" value="2024-12-01">
+                            <input type="date" id="end-date" class="form-input" value="<?= $endDate ?>">
                         </div>
                     </div>
 
@@ -63,10 +141,9 @@
                             <button type="button" class="chip">저번주</button>
                             <button type="button" class="chip active">이번달</button>
                             <button type="button" class="chip">지난달</button>
-                            <button type="button" class="chip">전체</button>
                         </div>
                     </div>
-
+                    <p class="help-text">기간을 선택하신 후 아래 조회하기 버튼을 눌러주세요</p>
                     <div class="form-group">
                         <button class="btn btn-primary" style="width: 100%;">조회하기</button>
                     </div>
@@ -79,53 +156,180 @@
             <div class="stats-summary">
                 <div class="stat-box">
                     <div class="stat-label">총 근무일</div>
-                    <div class="stat-value">20일</div>
+                    <div class="stat-value">
+                        <?= $total_days ?>일
+                    </div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-label">총 근무시간</div>
-                    <div class="stat-value">168h</div>
+                    <div class="stat-value">
+                        <?= $total_hours ?>시간
+                        <?= $total_mins ?>분
+                    </div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-label">평균 출근시간</div>
-                    <div class="stat-value">09:02</div>
+                    <div class="stat-value">
+                        <?= $display_avg_time ?>
+                    </div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">지각 횟수</div>
-                    <div class="stat-value">2회</div>
+                    <div class="stat-label">지각</div>
+                    <div class="stat-value">
+                        <?= $statusCounts['late'] ?>회
+                    </div>
                 </div>
             </div>
         </section>
 
         <section class="section">
             <h2 class="section-title">근태 현황</h2>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
             <div class="chart-container">
-                <div class="chart-placeholder">
-                    <div class="chart-inner">
-                        <div class="chart-center-value">20일</div>
-                        <div class="chart-center-label">총 근무일</div>
+                <canvas id="attendanceChart"></canvas>
+                <div class="chart-center-info">
+                    <div class="total-days">
+                        <?= $total_days ?>일
                     </div>
+                    <div class="total-days-text">총 근무일</div>
                 </div>
             </div>
             <div class="chart-legend">
                 <div class="legend-item">
                     <div class="legend-color" style="background-color: var(--main-color);"></div>
-                    <div class="legend-text">정상: 17일 (85%)</div>
+                    <div class="legend-text">정상:
+                        <?= $statusCounts['normal'] ?>일
+                    </div>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background-color: #FFA726;"></div>
-                    <div class="legend-text">지각: 2일 (10%)</div>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: #EF5350;"></div>
-                    <div class="legend-text">조퇴: 1일 (5%)</div>
+                    <div class="legend-text">지각:
+                        <?= $statusCounts['late'] ?>일
+                    </div>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background-color: var(--Gray-400);"></div>
-                    <div class="legend-text">결근: 0일 (0%)</div>
+                    <div class="legend-text">결근:
+                        <?= $statusCounts['absent'] ?>일
+                    </div>
                 </div>
             </div>
         </section>
     </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
+            const chips = document.querySelectorAll('.chip');
+
+            let attendanceChart = null; // 차트 객체를 저장할 전역 변수
+
+            // 날짜 포맷 함수
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            // 통계 로드 함수 (AJAX)
+            function loadStatistics() {
+                const s = startDateInput.value;
+                const e = endDateInput.value;
+
+                fetch(`get_statistics.php?startDate=${s}&endDate=${e}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        // 1. 요약 숫자 업데이트
+                        document.querySelectorAll('.stat-value')[0].innerText = `${data.totalDays}일`;
+                        document.querySelectorAll('.stat-value')[1].innerText = `${data.totalHours}시간 ${data.totalMins}분`;
+                        document.querySelectorAll('.stat-value')[2].innerText = data.avgTime;
+                        document.querySelectorAll('.stat-value')[3].innerText = `${data.statusCounts.late}회`;
+
+                        // 2. 차트 중앙 텍스트 및 범례 업데이트
+                        document.querySelector('.total-days').innerText = `${data.totalDays}일`;
+                        const legendTexts = document.querySelectorAll('.legend-text');
+                        legendTexts[0].innerText = `정상: ${data.statusCounts.normal}일`;
+                        legendTexts[1].innerText = `지각: ${data.statusCounts.late}일`;
+                        legendTexts[2].innerText = `결근: ${data.statusCounts.absent}일`;
+
+                        // 3. 차트 업데이트 또는 생성
+                        updateChart(data.statusCounts);
+                    })
+                    .catch(err => console.error("데이터 로드 실패:", err));
+            }
+
+            // 차트 생성 및 파괴 로직
+            function updateChart(counts) {
+                const ctx = document.getElementById('attendanceChart').getContext('2d');
+                const chartData = [counts.normal, counts.late, counts.absent];
+
+                // 핵심: 기존 차트가 있다면 파괴(destroy)해야 재사용 가능함
+                if (attendanceChart !== null) {
+                    attendanceChart.destroy();
+                }
+
+                attendanceChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['정상', '지각', '결근'],
+                        datasets: [{
+                            data: chartData,
+                            backgroundColor: ['#3457D5', '#FFA726', '#9E9E9E'],
+                            borderWidth: 0,
+                            cutout: '70%'
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { display: false } },
+                        maintainAspectRatio: false,
+                        animation: { duration: 500 } // 부드러운 전환 효과
+                    }
+                });
+            }
+
+            // 칩 클릭 이벤트
+            chips.forEach(chip => {
+                chip.addEventListener('click', function () {
+                    chips.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const text = this.innerText.trim();
+                    let start = new Date();
+                    let end = new Date();
+
+                    if (text === '이번주') {
+                        const day = start.getDay();
+                        start.setDate(start.getDate() - day);
+                        end.setDate(start.getDate() + 6);
+                    } else if (text === '저번주') {
+                        const day = start.getDay();
+                        start.setDate(start.getDate() - day - 7);
+                        end.setDate(start.getDate() + 6);
+                    } else if (text === '이번달') {
+                        start = new Date(start.getFullYear(), start.getMonth(), 1);
+                        end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+                    } else if (text === '지난달') {
+                        start = new Date(start.getFullYear(), start.getMonth() - 1, 1);
+                        end = new Date(start.getFullYear(), start.getMonth(), 0);
+                    }
+
+                    startDateInput.value = formatDate(start);
+                    endDateInput.value = formatDate(end);
+
+                    // 칩 클릭 시 바로 조회되게 하려면 아래 주석 해제
+                    // loadStatistics();
+                });
+            });
+
+            // 조회하기 버튼 클릭 이벤트
+            document.querySelector('.btn-primary').addEventListener('click', loadStatistics);
+
+            // 페이지 로드 시 최초 1회 실행
+            loadStatistics();
+        });
+    </script>
 </body>
 
 </html>

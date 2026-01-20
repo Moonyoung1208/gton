@@ -1,3 +1,10 @@
+.help-text {
+    font-size: 14px;
+    text-align: center;
+    color: var(--Gray-600);
+    margin-bottom: 0.5rem;
+}
+
 .stats-summary {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -27,12 +34,13 @@
 }
 
 .stat-value {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: bold;
     color: var(--main-color);
 }
 
 .chart-container {
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -40,16 +48,33 @@
     padding: 2rem;
 }
 
+.chart-center-info {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.total-days {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+.total-days-text {
+    font-size: 14px;
+    color: var(--Gray-600);
+}
+
 .chart-placeholder {
     width: 300px;
     height: 300px;
     border-radius: 50%;
-    background: conic-gradient(
-        var(--main-color) 0deg 252deg,
-        #FFA726 252deg 288deg,
-        #EF5350 288deg 306deg,
-        var(--Gray-400) 306deg 360deg
-    );
+    background: conic-gradient(var(--main-color) 0deg 252deg,
+            #FFA726 252deg 288deg,
+            #EF5350 288deg 306deg,
+            var(--Gray-400) 306deg 360deg);
     position: relative;
     display: flex;
     align-items: center;
@@ -81,13 +106,15 @@
 .chart-legend {
     margin-top: 1rem;
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
+    justify-content: center;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
 }
 
@@ -106,12 +133,12 @@
     .stats-summary {
         grid-template-columns: repeat(2, 1fr);
     }
-    
+
     .chart-placeholder {
         width: 250px;
         height: 250px;
     }
-    
+
     .chart-inner {
         width: 150px;
         height: 150px;

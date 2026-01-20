@@ -30,13 +30,13 @@ $dept_result = $conn->query($dept_sql);
     <link rel="stylesheet" href="../css/font.css">
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="css/admin.css">
-    <!-- <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
 </head>
 
 <body>
     <div class="admin-menu">
-        <div class="admin-nav-link" onclick="history.back()">
+        <div class="admin-nav-link" onclick="location.href='admin-employees.html'">
             <i class="fa-solid fa-chevron-left"></i>
         </div>
     </div>
@@ -110,7 +110,8 @@ $dept_result = $conn->query($dept_sql);
             </section>
 
             <div class="form-actions">
-                <button type="button" class="btn btn-secondary full" onclick="history.back()">취소</button>
+                <button type="button" class="btn btn-secondary full"
+                    onclick="location.href='admin-employees.html'">취소</button>
                 <button type="submit" class="btn btn-primary full"><i class="fa-solid fa-user-plus"></i> 직원 추가</button>
             </div>
         </form>

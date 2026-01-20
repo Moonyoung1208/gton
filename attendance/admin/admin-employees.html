@@ -1,9 +1,7 @@
 <?php
 session_start();
-
 require_once '../config.php';
 
-// 관리자 로그인 확인
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
     header("Location: admin-login.html");
     exit;
@@ -11,23 +9,9 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRU
 
 $conn = connectDB();
 
-// 직원 목록 가져오기
-$sql = "SELECT 
-            u.user_id, 
-            u.name, 
-            u.username, 
-            u.email, 
-            u.phone, 
-            d.dept_name, 
-            u.position, 
-            u.join_date, 
-            u.status 
-        FROM users u
-        LEFT JOIN departments d ON u.dept_id = d.id
-        ORDER BY u.join_date DESC";
-
-$result = $conn->query($sql);
-
+// 전체 직원 수만 따로 계산 (상단 통계용)
+$sql_total = "SELECT COUNT(*) as cnt FROM users";
+$total_count = $conn->query($sql_total)->fetch_assoc()['cnt'];
 ?>
 
 <!DOCTYPE html>
@@ -100,14 +84,31 @@ $result = $conn->query($sql);
             </a>
         </header>
 
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="직원명, 이메일, 부서 검색">
+                <button id="btnSearch" class="btn btn-primary" style="white-space: nowrap; width: 80px;">검색</button>
+            </div>
+        </div>
+
         <div class="setting-item">
             <div class="stat-label">전체 직원</div>
             <div class="stat-value">
-                <?php echo $result->num_rows; ?>명
+                <?php echo $total_count; ?>명
             </div>
         </div>
 
         <section class="section">
+            <div class="employee-list" id="employeeContainer"></div>
+
+            <div id="loadMoreSection" style="margin-top: 20px; text-align: center;">
+                <button id="btnLoadMore" class="btn btn-outline" style="width: 100%;">
+                    더보기 <i class="fa-solid fa-chevron-down"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- <section class="section">
             <div class="employee-list">
                 <?php if ($result->num_rows > 0): ?>
                 <?php while($row = $result->fetch_assoc()): ?>
@@ -153,10 +154,88 @@ $result = $conn->query($sql);
                 <div class="empty-state">등록된 직원이 없습니다.</div>
                 <?php endif; ?>
             </div>
-        </section>
+        </section> -->
     </main>
 
     <script>
+        let currentPage = 1;
+        let currentSearch = '';
+        const container = document.getElementById('employeeContainer');
+        const loadMoreBtn = document.getElementById('btnLoadMore');
+        const searchInput = document.getElementById('searchInput');
+        const btnSearch = document.getElementById('btnSearch');
+
+        function fetchEmployees(page, search = '') {
+            const url = `get_employees.php?page=${page}&search=${encodeURIComponent(search)}`;
+
+            fetch(url)
+                .then(res => res.text()) // 에러 확인을 위해 text로 먼저 받음
+                .then(text => {
+                    try {
+                        const data = JSON.parse(text);
+                        if (page === 1) container.innerHTML = ''; // 새 검색 시 초기화
+
+                        if (!data || data.length === 0) {
+                            if (page === 1) container.innerHTML = '<div class="empty-state">직원이 없습니다.</div>';
+                            document.getElementById('loadMoreSection').style.display = 'none';
+                            return;
+                        }
+
+                        data.forEach(emp => {
+                            const statusBadge = emp.status === 'active'
+                                ? '<span class="badge badge-success">재직</span>'
+                                : '<span class="badge badge-danger">퇴사</span>';
+
+                            const card = `
+                            <div class="employee-card" onclick="viewDetail(${emp.user_id})">
+                                <div class="emp-info-group">
+                                    <div class="emp-row">
+                                        <span class="emp-label">성명</span>
+                                        <span class="emp-value"><strong>${emp.name}</strong></span>
+                                    </div>
+                                    <div class="emp-row">
+                                        <span class="emp-label">이메일</span>
+                                        <span class="emp-value">${emp.email}</span>
+                                    </div>
+                                    <div class="emp-row">
+                                        <span class="emp-label">부서/직급</span>
+                                        <span class="emp-value">${emp.dept_name || '미지정'} / ${emp.position}</span>
+                                    </div>
+                                    <div class="emp-row">
+                                        <span class="emp-label">입사일</span>
+                                        <span class="emp-value">${emp.join_date}</span>
+                                    </div>
+                                </div>
+                                <div class="emp-status-actions">${statusBadge}</div>
+                            </div>`;
+                            container.insertAdjacentHTML('beforeend', card);
+                        });
+
+                        // 10개 미만이면 더보기 버튼 숨김
+                        document.getElementById('loadMoreSection').style.display = data.length < 10 ? 'none' : 'block';
+                    } catch (e) {
+                        console.error("JSON 파싱 에러. 서버 응답 내용:", text);
+                    }
+                });
+        }
+
+        // 검색 핸들러
+        function handleSearch() {
+            currentSearch = searchInput.value;
+            currentPage = 1;
+            fetchEmployees(1, currentSearch);
+        }
+
+        btnSearch.addEventListener('click', handleSearch);
+        searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSearch(); });
+
+        loadMoreBtn.addEventListener('click', () => {
+            currentPage++;
+            fetchEmployees(currentPage, currentSearch);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => fetchEmployees(1));
+
         function viewDetail(userId) {
             location.href = `detail-employee.html?id=${userId}`;
         }

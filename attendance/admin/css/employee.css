@@ -21,6 +21,7 @@
 
 .emp-row {
     display: flex;
+    align-items: center;
     margin-bottom: 4px;
     font-size: 0.9rem;
 }
@@ -47,4 +48,17 @@
     text-align: center;
     padding: 40px;
     color: var(--Gray-400);
+}
+
+
+.search-section {
+    margin: 1rem 0;
+}
+
+.search-container {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    font-size: 1rem;
 }

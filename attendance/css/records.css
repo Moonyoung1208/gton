@@ -34,9 +34,11 @@
 
 .badge-wrap {
     display: flex;
-    justify-content: center;
+    justify-content: end;
     gap: 0.25rem;
-    margin-bottom: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--Gray-200);
 }
 
 .calendar-wrap {
@@ -110,10 +112,46 @@ td.normal-bg {
     background-color: #E8F5E9 !important;
 }
 
-/* 오늘 날짜 표시가 배경색과 겹칠 경우를 대비한 스타일 */
-.fc .fc-daygrid-day.fc-day-today {
-    background-color: transparent !important;
-    background-color: transparent !important;
-    border: 2px solid var(--main-color);
-    /* 배경은 데이터 색상을 따르도록 함 */
+.fc .fc-toolbar.fc-header-toolbar {
+    margin: 1rem 0;
+}
+
+.fc-direction-ltr .fc-toolbar>*> :not(:first-child) {
+    margin-left: 0;
+}
+
+/* 달력 내부 이벤트 텍스트 스타일 */
+.fc-event {
+    border: none !important;
+    background: transparent !important;
+    cursor: pointer;
+}
+
+.fc-event-main-inner {
+    padding: 2px 0;
+    font-size: 11px;
+    border-radius: 4px;
+}
+
+/* 상태별 글자 색상 및 배경 설정 */
+.event-normal .fc-event-main-inner {
+    background-color: #e8f5e9;
+    /* 연녹색 배경 */
+    color: #2e7d32;
+    /* 진녹색 글자 */
+}
+
+.event-late .fc-event-main-inner,
+.event-early .fc-event-main-inner {
+    background-color: #fff3e0;
+    /* 연주황 배경 */
+    color: #ef6c00;
+    /* 진주황 글자 */
+}
+
+.event-absent .fc-event-main-inner {
+    background-color: #ffebee;
+    /* 연빨강 배경 */
+    color: #c62828;
+    /* 진빨강 글자 */
 }

@@ -22,7 +22,7 @@ $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 $password_confirm = $_POST['password_confirm'] ?? '';
 $phone = trim($_POST['phone'] ?? '');
-$department = trim($_POST['department'] ?? '');
+$dept_id = trim($_POST['dept_id'] ?? '');
 $position = trim($_POST['position'] ?? '');
 $join_date = trim($_POST['join_date'] ?? '');
 
@@ -38,7 +38,7 @@ if (empty($dept_id)) {
 
 
 // 필수 항목 검증
-if (empty($name) || empty($username) || empty($email) || empty($password) || empty($department) || empty($join_date)) {
+if (empty($name) || empty($username) || empty($email) || empty($password) || empty($dept_id) || empty($join_date)) {
     $_SESSION['status'] = "error";
     $_SESSION['msg'] = "필수 항목을 모두 입력해주세요.";
     $_SESSION['form_data'] = $form_data; // 입력 데이터 보존
@@ -64,7 +64,7 @@ try {
 
     $stmt_user = $conn->prepare($sql_user);
     $stmt_user->bind_param(
-        "sssssis s", // s: string, i: integer
+        "sssssiss", // s: string, i: integer
         $username,
         $name,
         $email,

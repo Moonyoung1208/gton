@@ -65,12 +65,16 @@ $insert_stmt = $conn->prepare($insert_sql);
 $insert_stmt->bind_param("issss", $user_id, $work_date, $check_in_time, $check_in_location, $status);
 
 if ($insert_stmt->execute()) {
-    // 성공 메시지
-    echo "<script>alert('출근이 성공적으로 기록되었습니다. 출근 시각: {$check_in_time}'); window.location.href='dashboard.html';</script>";
+    // 성공 시 세션에 정보 저장
+    $_SESSION['status'] = "success";
+    $_SESSION['msg'] = "출근이 성공적으로 기록되었습니다.";
+    header("Location: dashboard.html");
 } else {
-    // 실패 메시지
+    // 실패 시 세션에 에러 정보 저장
     error_log("출근 기록 실패: " . $insert_stmt->error);
-    echo "<script>alert('출근 기록 중 오류가 발생했습니다.'); window.location.href='dashboard.html';</script>";
+    $_SESSION['status'] = "error";
+    $_SESSION['msg'] = "출근 기록 중 오류가 발생했습니다.";
+    header("Location: dashboard.html");
 }
 
 $insert_stmt->close();

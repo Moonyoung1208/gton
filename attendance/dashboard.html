@@ -74,9 +74,9 @@ $summary_data = [
 $current_month_start = date('Y-m-01'); // 예: 2025-12-01
 $current_month_end = date('Y-m-t');   // 예: 2025-12-31
 
-// SQL을 사용하여 이번 달 기록을 집계
+// 이번 달 기록을 집계
 $summary_sql = "SELECT 
-                    COUNT(CASE WHEN status = 'working' OR status = 'early_leave' THEN 1 END) AS total_work_days,
+                    COUNT(CASE WHEN status = 'normal' THEN 1 END) AS normal_days,
                     COUNT(CASE WHEN status = 'late' THEN 1 END) AS late_days,
                     SUM(work_hours) AS total_work_hours
                 FROM 
@@ -90,26 +90,20 @@ $summary_stmt->bind_param("iss", $user_id, $current_month_start, $current_month_
 $summary_stmt->execute();
 $summary_result = $summary_stmt->get_result();
 
-if ($summary_result->num_rows > 0) {
-    $raw_summary = $summary_result->fetch_assoc();
-        
+if ($raw_summary = $summary_result->fetch_assoc()) {
+    $summary_data['normal_days'] = (int)$raw_summary['normal_days'];
     $summary_data['late_days'] = (int)$raw_summary['late_days'];
-    $summary_data['total_work_days'] = (int)$raw_summary['total_work_days'] + $summary_data['late_days'];
     
-    // 정상출근일 = 총 근무일 - 지각일
-    $summary_data['normal_days'] = $summary_data['total_work_days'] - $summary_data['late_days'];
+    // 총 출근일 = 정상 출근일 + 지각일
+    $summary_data['total_work_days'] = $summary_data['normal_days'] + $summary_data['late_days'];
     
-    // 총 근무시간을 HH:MM 형식으로 포맷
+    // 총 근무시간 포맷 (HH:MM)
     $raw_total_hours = (float)($raw_summary['total_work_hours'] ?? 0.00);
+    $total_minutes_int = (int)round($raw_total_hours * 60);
 
-    // 총 근무시간을 분 단위로 변환
-    $total_minutes_int = round($raw_total_hours * 60);
-
-    // 시와 분을 계산
     $hours = floor($total_minutes_int / 60);
     $minutes = $total_minutes_int % 60;
 
-    // HH:mm 형식으로 포맷
     $summary_data['total_work_hours'] = sprintf("%02d:%02d", $hours, $minutes);
 }
 
@@ -175,6 +169,9 @@ if ($summary_data['total_work_days'] > 0) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
         integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
         crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- sweetalert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
@@ -246,11 +243,19 @@ if ($summary_data['total_work_days'] > 0) {
 
 
             <div class="work-buttons">
-                <form action="check_out_process.php" method="POST">
-                    <button class="btn btn-secondary btn-block">퇴근하기</button>
+                <form action="check_out_process.php" method="POST" id="checkInForm">
+                    <button type="submit" id="checkOutBtn"
+                        class="btn btn-block <?= ($record && !$record['check_out_time']) ? 'btn-primary' : 'btn-secondary' ?>"
+                        <?=($record && !$record['check_out_time']) ? '' : 'disabled' ?>>
+                        퇴근하기
+                    </button>
                 </form>
-                <form action="check_in_process.php" method="POST">
-                    <button class="btn btn-primary btn-block">출근하기</button>
+                <form action="check_in_process.php" method="POST" id="checkOutForm">
+                    <button type="submit" id="checkInBtn"
+                        class="btn btn-block <?= $record ? 'btn-secondary' : 'btn-primary' ?>" <?=$record ? 'disabled'
+                        : '' ?>>
+                        출근하기
+                    </button>
                 </form>
             </div>
 
@@ -352,6 +357,44 @@ if ($summary_data['total_work_days'] > 0) {
         </section>
     </main>
 
+    <!-- 출근 완료 알람 -->
+    <?php if (isset($_SESSION['status'])): ?>
+    <script>
+        Swal.fire({
+            icon: '<?php echo $_SESSION['status']; ?>',
+            title: '<?php echo $_SESSION['status'] === 'success' ? '완료' : '오류'; ?>',
+            text: '<?php echo $_SESSION['msg']; ?>',
+            confirmButtonColor: '#4e73df',
+            confirmButtonText: '확인'
+        });
+    </script>
+    <?php 
+    // 표시 후 세션 변수 제거 (새로고침 시 다시 뜨지 않도록 함)
+    unset($_SESSION['status']);
+    unset($_SESSION['msg']);
+    ?>
+    <?php endif; ?>
+
+    <!-- 퇴근 완료 알람 -->
+    <?php if (isset($_SESSION['status'])): ?>
+
+    <script>
+        Swal.fire({
+            icon: '<?php echo $_SESSION['status']; ?>',
+            title: '<?php echo $_SESSION['status'] === 'success' ? '퇴근 완료' : '오류'; ?>',
+            text: '<?php echo $_SESSION['msg']; ?>',
+            confirmButtonColor: '#4e73df',
+            confirmButtonText: '확인'
+        });
+    </script>
+
+    <?php 
+        // 알림을 한 번만 띄우기 위해 세션 삭제
+        unset($_SESSION['status']);
+        unset($_SESSION['msg']);
+    ?>
+    <?php endif; ?>
+
     <script>
         // 시계 표시
         function updateClock() {
@@ -376,6 +419,33 @@ if ($summary_data['total_work_days'] > 0) {
 
         // 1초(1000ms)마다 시각을 업데이트
         setInterval(updateClock, 1000);
+
+        // 출퇴근 버튼 색상 변경
+        document.addEventListener('DOMContentLoaded', function () {
+            const checkInForm = document.getElementById('checkInForm');
+            const checkOutForm = document.getElementById('checkOutForm');
+            const checkInBtn = document.getElementById('checkInBtn');
+            const checkOutBtn = document.getElementById('checkOutBtn');
+
+            // 출근 버튼 클릭 시
+            if (checkInForm) {
+                checkInForm.addEventListener('submit', function (e) {
+                    // 버튼 스타일 즉시 변경
+                    checkInBtn.classList.replace('btn-primary', 'btn-secondary');
+                    checkInBtn.disabled = true;
+                    checkInBtn.innerText = "처리 중...";
+                });
+            }
+
+            // 퇴근 버튼 클릭 시
+            if (checkOutForm) {
+                checkOutForm.addEventListener('submit', function (e) {
+                    checkOutBtn.classList.replace('btn-primary', 'btn-secondary');
+                    checkOutBtn.disabled = true;
+                    checkOutBtn.innerText = "처리 중...";
+                });
+            }
+        });
     </script>
 </body>
 

@@ -1,14 +1,59 @@
 <?php
 session_start();
-
 require_once '../config.php';
 
-// 로그인 세션 변수가 설정되지 않았거나 FALSE인 경우
+// 관리자 권한 체크
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
-    // 세션이 없으면 로그인 페이지로 강제 이동
     header("Location: admin-login.html");
     exit;
 }
+
+$conn = connectDB();
+$today = date('Y-m-d');
+
+// 전체 직원 수 (user_id로 수정)
+$sql_total = "SELECT COUNT(user_id) as cnt FROM users";
+$total_users = $conn->query($sql_total)->fetch_assoc()['cnt'];
+
+// 금일 출근/지각/결근 (records 테이블 기준)
+$sql_today = "SELECT 
+                COUNT(CASE WHEN status != 'absent' THEN 1 END) as attended,
+                COUNT(CASE WHEN status = 'late' THEN 1 END) as late,
+                COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent
+              FROM records WHERE work_date = ?";
+$stmt = $conn->prepare($sql_today);
+$stmt->bind_param("s", $today);
+$stmt->execute();
+$today_stats = $stmt->get_result()->fetch_assoc();
+
+// 부서별 현황 (JOIN 활용)
+$sql_dept = "SELECT 
+                d.dept_name, 
+                COUNT(u.user_id) as total_cnt, 
+                COUNT(r.record_id) as attend_cnt,
+                COUNT(CASE WHEN r.status = 'late' THEN 1 END) as late_cnt,
+                COUNT(CASE WHEN r.status = 'absent' THEN 1 END) as absent_cnt
+             FROM departments d
+             LEFT JOIN users u ON d.id = u.dept_id
+             LEFT JOIN records r ON u.user_id = r.user_id AND r.work_date = ?
+             GROUP BY d.id, d.dept_name";
+
+$stmt_dept = $conn->prepare($sql_dept);
+$stmt_dept->bind_param("s", $today);
+$stmt_dept->execute();
+$dept_results = $stmt_dept->get_result();
+
+// 실시간 출퇴근 현황 (최근 기록 10개 정도)
+$sql_realtime = "SELECT u.name, d.dept_name, r.check_in_time, r.status 
+                 FROM records r 
+                 JOIN users u ON r.user_id = u.user_id 
+                 JOIN departments d ON u.dept_id = d.id
+                 WHERE r.work_date = ? 
+                 ORDER BY r.check_in_time DESC LIMIT 10";
+$stmt_real = $conn->prepare($sql_realtime);
+$stmt_real->bind_param("s", $today);
+$stmt_real->execute();
+$realtime_results = $stmt_real->get_result();
 
 ?>
 
@@ -77,19 +122,27 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRU
             <div class="admin-stats">
                 <div class="admin-stat-card">
                     <div class="admin-stat-label">전체 직원</div>
-                    <div class="admin-stat-value">45명</div>
+                    <div class="admin-stat-value">
+                        <?= $total_users ?>명
+                    </div>
                 </div>
                 <div class="admin-stat-card">
                     <div class="admin-stat-label">금일 출근</div>
-                    <div class="admin-stat-value">42명</div>
+                    <div class="admin-stat-value">
+                        <?= $today_stats['attended'] ?? 0 ?>명
+                    </div>
                 </div>
                 <div class="admin-stat-card">
                     <div class="admin-stat-label">금일 지각</div>
-                    <div class="admin-stat-value">3명</div>
+                    <div class="admin-stat-value">
+                        <?= $today_stats['late'] ?? 0 ?>명
+                    </div>
                 </div>
                 <div class="admin-stat-card">
                     <div class="admin-stat-label">금일 결근</div>
-                    <div class="admin-stat-value">0명</div>
+                    <div class="admin-stat-value">
+                        <?= $today_stats['absent'] ?? 0 ?>명
+                    </div>
                 </div>
             </div>
         </section>
@@ -109,46 +162,30 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRU
                         </tr>
                     </thead>
                     <tbody>
+                        <?php while($row = $dept_results->fetch_assoc()): 
+                        $rate = ($row['total_cnt'] > 0) ? round(($row['attend_cnt'] / $row['total_cnt']) * 100) : 0;
+                        ?>
                         <tr>
-                            <td>개발팀</td>
-                            <td>15명</td>
-                            <td>14명</td>
-                            <td>1명</td>
-                            <td>0명</td>
-                            <td>93%</td>
+                            <td>
+                                <?= htmlspecialchars($row['dept_name']) ?>
+                            </td>
+                            <td>
+                                <?= $row['total_cnt'] ?>명
+                            </td>
+                            <td>
+                                <?= $row['attend_cnt'] ?>명
+                            </td>
+                            <td>
+                                <?= $row['late_cnt'] ?>명
+                            </td>
+                            <td>
+                                <?= $row['absent_cnt'] ?>명
+                            </td>
+                            <td>
+                                <?= $rate ?>%
+                            </td>
                         </tr>
-                        <tr>
-                            <td>디자인팀</td>
-                            <td>8명</td>
-                            <td>8명</td>
-                            <td>0명</td>
-                            <td>0명</td>
-                            <td>100%</td>
-                        </tr>
-                        <tr>
-                            <td>기획팀</td>
-                            <td>10명</td>
-                            <td>9명</td>
-                            <td>1명</td>
-                            <td>0명</td>
-                            <td>90%</td>
-                        </tr>
-                        <tr>
-                            <td>마케팅팀</td>
-                            <td>7명</td>
-                            <td>7명</td>
-                            <td>0명</td>
-                            <td>0명</td>
-                            <td>100%</td>
-                        </tr>
-                        <tr>
-                            <td>인사팀</td>
-                            <td>5명</td>
-                            <td>4명</td>
-                            <td>1명</td>
-                            <td>0명</td>
-                            <td>80%</td>
-                        </tr>
+                        <?php endwhile; ?>
                     </tbody>
                 </table>
             </div>
@@ -166,36 +203,25 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRU
                     </tr>
                 </thead>
                 <tbody>
+                    <?php while($row = $realtime_results->fetch_assoc()): 
+                    $status_text = ($row['status'] == 'normal') ? '정상' : (($row['status'] == 'late') ? '지각' : '결근');
+                    $badge_class = ($row['status'] == 'normal') ? 'badge-success' : 'badge-warning';
+                    ?>
                     <tr>
-                        <td>김철수</td>
-                        <td>개발팀</td>
-                        <td>08:55</td>
-                        <td><span class="badge badge-success">정상</span></td>
+                        <td>
+                            <?= htmlspecialchars($row['name']) ?>
+                        </td>
+                        <td>
+                            <?= htmlspecialchars($row['dept_name']) ?>
+                        </td>
+                        <td>
+                            <?= substr($row['check_in_time'], 0, 5) ?>
+                        </td>
+                        <td><span class="badge <?= $badge_class ?>">
+                                <?= $status_text ?>
+                            </span></td>
                     </tr>
-                    <tr>
-                        <td>이영희</td>
-                        <td>디자인팀</td>
-                        <td>09:00</td>
-                        <td><span class="badge badge-success">정상</span></td>
-                    </tr>
-                    <tr>
-                        <td>박민수</td>
-                        <td>기획팀</td>
-                        <td>09:15</td>
-                        <td><span class="badge badge-warning">지각</span></td>
-                    </tr>
-                    <tr>
-                        <td>정수현</td>
-                        <td>마케팅팀</td>
-                        <td>08:50</td>
-                        <td><span class="badge badge-success">정상</span></td>
-                    </tr>
-                    <tr>
-                        <td>홍길동</td>
-                        <td>개발팀</td>
-                        <td>09:10</td>
-                        <td><span class="badge badge-warning">지각</span></td>
-                    </tr>
+                    <?php endwhile; ?>
                 </tbody>
             </table>
         </section>

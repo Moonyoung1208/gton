@@ -154,6 +154,10 @@ body {
     background-color: var(--Gray-400);
 }
 
+button:disabled {
+    pointer-events: none;
+}
+
 .btn-success {
     background-color: #4CAF50;
     color: white;

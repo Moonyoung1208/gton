@@ -12,54 +12,8 @@ $conn = @connectDB();
 $statusMap = [
     'normal' => '정상',
     'late' => '지각',
-    'early' => '조퇴',
-    'early_leave' => '조퇴', // 혹시 모를 오타 대비
     'absent' => '결근'
 ];
-
-// --- 2. 하단 리스트 조회 (필터 적용된 5개) ---
-$statusFilter = $_GET['status'] ?? '전체';
-$currentStartDate = $_GET['startDate'] ?? date('Y-m-d', strtotime('-7 days'));
-$currentEndDate = $_GET['endDate'] ?? date('Y-m-d');
-
-$records = [];
-if ($conn && $statusFilter !== '') {
-    $sql_conditions = "user_id = ? AND work_date BETWEEN ? AND ?";
-    $params = [$current_user_id, $currentStartDate, $currentEndDate];
-    $types = "iss";
-
-    if ($statusFilter !== '전체') {
-        $dbStatus = match($statusFilter) {
-            '정상' => 'normal',
-            '지각' => 'late',
-            '조퇴' => 'early',
-            '결근' => 'absent',
-            default => null
-        };
-        if ($dbStatus) {
-            $sql_conditions .= " AND status = ?";
-            $params[] = $dbStatus;
-            $types .= "s";
-        }
-    }
-
-    $sql = "SELECT work_date, check_in_time, check_out_time, work_hours, status 
-            FROM records WHERE $sql_conditions ORDER BY work_date DESC LIMIT 5";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        $records[] = [
-            'date' => $row['work_date'],
-            'dayOfWeek' => date('D', strtotime($row['work_date'])),
-            'onTime' => $row['check_in_time'] ? substr($row['check_in_time'], 0, 5) : '미등록',
-            'offTime' => $row['check_out_time'] ? substr($row['check_out_time'], 0, 5) : '근무중',
-            'workTime' => $row['work_hours'] ?? 'N/A',
-            'status' => $statusMap[$row['status']] ?? '오류',
-        ];
-    }
-}
 
 // --- 3. 달력 전체 데이터 조회 (LIMIT 없음!) ---
 $calendarEvents = [];
@@ -76,25 +30,29 @@ if ($conn) {
         $className = match($s) {
             'normal' => 'normal-bg',
             'late' => 'late-bg',
-            'early', 'early_leave' => 'late-bg', // 조퇴도 노란색
             'absent' => 'absent-bg',
             default => ''
         };
 
         $calendarEvents[] = [
-            'start' => $row['work_date'],
-            'display' => 'background',
-            'classNames' => [$className],
-            'extendedProps' => [
-                'onTime' => $row['check_in_time'] ? substr($row['check_in_time'], 0, 5) : '미등록',
-                'offTime' => $row['check_out_time'] ? substr($row['check_out_time'], 0, 5) : '근무중',
-                'workTime' => $row['work_hours'] ?? 'N/A',
-                'status' => $statusMap[$s] ?? '오류'
-            ]
-        ];
+        'start' => $row['work_date'],
+        'title' => $statusMap[$s] ?? '오류', // 달력에 표시될 글자 추가
+        // 'display' => 'background', // 글자를 보이게 하려면 이 줄을 주석 처리하거나 제거하세요.
+        'classNames' => [$className],
+        'extendedProps' => [
+            'onTime' => $row['check_in_time'] ? substr($row['check_in_time'], 0, 5) : '미등록',
+            'offTime' => $row['check_out_time'] ? substr($row['check_out_time'], 0, 5) : '근무중',
+            'workTime' => $row['work_hours'] ?? 'N/A',
+            'status' => $statusMap[$s] ?? '오류'
+        ]
+    ];
     }
     $conn->close();
 }
+
+// 초기 날짜 설정
+$currentStartDate = date('Y-m-d', strtotime('-7 days'));
+$currentEndDate = date('Y-m-d');
 ?>
 
 <!DOCTYPE html>
@@ -145,109 +103,109 @@ if ($conn) {
     <main class="container">
         <section>
             <div class="calendar-wrap">
+                <div id='calendar'></div>
                 <div class="badge-wrap">
                     <span class="badge badge-success">정상</span>
                     <span class="badge badge-warning">지각</span>
                     <span class="badge badge-danger">결근</span>
                     <span class="badge badge-gray">휴일</span>
-                    <span class="badge badge-primary" id="go-today">오늘로</span>
+                    <span class="badge badge-primary" id="go-today">오늘로 이동</span>
                 </div>
-                <div id='calendar'></div>
             </div>
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     var calendarEl = document.getElementById('calendar');
+                    if (!calendarEl) return;
 
-                    // PHP 데이터를 JS 객체로 변환
-                    var eventsData = <?php echo json_encode($calendarEvents?: []); ?>;
+                    // PHP 데이터를 JS로 가져오기
+                    var eventsData = <?php echo json_encode($calendarEvents); ?> || [];
 
                     var calendar = new FullCalendar.Calendar(calendarEl, {
                         initialView: 'dayGridMonth',
                         locale: 'ko',
-                        contentHeight: 350,
+                        contentHeight: 450,
                         headerToolbar: {
                             left: '',
                             center: 'prev title next',
                             right: ''
                         },
-                        titleFormat: function (date) {
-                            return `${date.date.year}년 ${date.date.month + 1}월`;
-                        },
-                        dayCellContent: function (info) {
-                            return { html: info.dayNumberText.replace('일', '') };
-                        },
-
                         events: eventsData,
 
-                        eventClassNames: function (arg) {
-                            if (arg.event.display === 'background') {
-                                return arg.event.classNames;
-                            }
+                        // 이벤트(배지) 클릭 시 상세정보 표시
+                        eventClick: function (info) {
+                            showDetail(info.event.startStr, info.event.extendedProps);
                         },
 
-                        dayCellDidMount: function (arg) {
-                            // 1. 날짜 문자열 생성 (시차 문제 방지 포맷)
-                            var d = arg.date;
-                            var dateStr = d.getFullYear() + '-' +
-                                String(d.getMonth() + 1).padStart(2, '0') + '-' +
-                                String(d.getDate()).padStart(2, '0');
-
-                            // 2. 해당 날짜 데이터 찾기
-                            var record = eventsData.find(e => e.start === dateStr);
-
-                            // 3. 기존에 묻어있을 수 있는 클래스 모두 제거 (초기화)
-                            arg.el.classList.remove('normal-bg', 'late-bg', 'absent-bg');
-
-                            // 4. 데이터가 있을 때만 클래스 다시 추가
-                            if (record && record.classNames && record.classNames[0]) {
-                                // 약간의 지연(0ms)을 주어 FullCalendar의 기본 렌더링 이후에 실행되도록 보장
-                                setTimeout(function () {
-                                    arg.el.classList.add(record.classNames[0]);
-                                }, 0);
-                            }
-                        },
-
-                        eventDidMount: function (info) {
-                            if (info.event.display === 'background') {
-                                // 기본 fc-bg-event의 스타일을 무력화하고 싶을 때 사용
-                                info.el.style.backgroundColor = 'transparent';
-                            }
-                        },
-
+                        // 날짜 칸 자체를 클릭했을 때
                         dateClick: function (info) {
                             var record = eventsData.find(e => e.start === info.dateStr);
-                            var detailBox = document.getElementById('day-detail');
-
                             if (record) {
-                                var props = record.extendedProps;
-                                document.getElementById('det-date').innerText = info.dateStr;
-                                document.getElementById('det-on').innerText = props.onTime;
-                                document.getElementById('det-off').innerText = props.offTime;
-                                document.getElementById('det-work').innerText = props.workTime;
-
-                                const statusEl = document.getElementById('det-status');
-                                statusEl.innerText = props.status;
-
-                                statusEl.className = 'badge';
-                                if (props.status === '정상') statusEl.classList.add('badge-success');
-                                else if (props.status === '결근') statusEl.classList.add('badge-danger');
-                                else statusEl.classList.add('badge-warning');
-
-                                detailBox.style.display = 'block';
-                                detailBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                showDetail(info.dateStr, record.extendedProps);
                             } else {
-                                detailBox.style.display = 'none';
+                                document.getElementById('day-detail').style.display = 'none';
                             }
+                        },
+
+                        // 배지(이벤트) 모양 커스텀
+                        eventContent: function (arg) {
+                            let container = document.createElement('div');
+                            container.className = 'fc-event-main-inner';
+
+                            const badgeClasses = {
+                                '정상': 'badge-success',
+                                '결근': 'badge-danger',
+                                '지각': 'badge-warning',
+                            };
+
+                            let badgeClass = badgeClasses[arg.event.title] || 'badge-secondary';
+
+                            container.innerHTML = `
+                <center>
+                    <span class="badge ${badgeClass}" style="font-size: 11px; padding: 4px 8px; cursor:pointer;">
+                        ${arg.event.title}
+                    </span>
+                </center>
+            `;
+                            return { domNodes: [container] };
                         }
                     });
 
+                    // ★ 중요: 달력을 화면에 그림
                     calendar.render();
 
-                    document.getElementById('go-today').addEventListener('click', function () {
-                        calendar.today();
-                    });
+                    // "오늘로 이동" 버튼 기능 연결
+                    const goTodayBtn = document.getElementById('go-today');
+                    if (goTodayBtn) {
+                        goTodayBtn.addEventListener('click', function () {
+                            calendar.today();
+                        });
+                    }
                 });
+
+                // 상세 정보 표시 함수 (전역으로 분리)
+                function showDetail(dateStr, props) {
+                    var detailBox = document.getElementById('day-detail');
+                    if (!detailBox) return;
+
+                    document.getElementById('det-date').innerText = dateStr;
+                    document.getElementById('det-on').innerText = props.onTime || '미등록';
+                    document.getElementById('det-off').innerText = props.offTime || '근무중';
+                    document.getElementById('det-work').innerText = props.workTime || '0';
+
+                    const statusEl = document.getElementById('det-status');
+                    statusEl.innerText = props.status;
+
+                    // 배지 색상 초기화 및 적용
+                    statusEl.className = 'badge';
+                    if (props.status === '정상') statusEl.classList.add('badge-success');
+                    else if (props.status === '결근') statusEl.classList.add('badge-danger');
+                    else statusEl.classList.add('badge-warning');
+
+                    detailBox.style.display = 'block';
+                    detailBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
             </script>
+
             <div id="day-detail" class="result-card card"
                 style="display: none; margin-top: 15px; border: 2px solid var(--main-color);">
                 <div class="result-date" id="det-date" style="color: var(--main-color); font-weight: bold;"></div>
@@ -264,20 +222,15 @@ if ($conn) {
             <h2 class="section-title">근태기록 조회</h2>
 
             <form action="" method="GET" id="filterForm">
-
                 <div class="filter-row">
-                    <!-- 날짜 입력 -->
                     <div class="date-inputs">
                         <div class="form-group">
                             <label class="form-label" for="start-date">시작일</label>
-                            <input type="date" id="start-date" name="startDate" class="form-input"
-                                value="<?= htmlspecialchars($currentStartDate) ?>">
+                            <input type="date" id="startDate" name="startDate" value="<?= $currentStartDate ?>">
                         </div>
-
                         <div class="form-group">
                             <label class="form-label" for="end-date">종료일</label>
-                            <input type="date" id="end-date" name="endDate" class="form-input"
-                                value="<?= htmlspecialchars($currentEndDate) ?>">
+                            <input type="date" id="endDate" name="endDate" value="<?= $currentEndDate ?>">
                         </div>
                     </div>
                 </div>
@@ -285,95 +238,92 @@ if ($conn) {
                 <div class="filter-row">
                     <div class="form-group">
                         <label class="form-label">근무상태</label>
-                        <div class="filter-chips" role="group" aria-label="근무상태">
-                            <button type="button" class="chip <?= ($statusFilter === '전체') ? 'active' : '' ?>"
-                                data-value="전체">전체</button>
-                            <button type="button" class="chip <?= ($statusFilter === '정상') ? 'active' : '' ?>"
-                                data-value="정상">정상</button>
-                            <button type="button" class="chip <?= ($statusFilter === '지각') ? 'active' : '' ?>"
-                                data-value="지각">지각</button>
-                            <button type="button" class="chip <?= ($statusFilter === '조퇴') ? 'active' : '' ?>"
-                                data-value="조퇴">조퇴</button>
-                            <button type="button" class="chip <?= ($statusFilter === '결근') ? 'active' : '' ?>"
-                                data-value="결근">결근</button>
+                        <div class="filter-chips">
+                            <button type="button" class="filter-btn chip active" data-status="전체">전체</button>
+                            <button type="button" class="filter-btn chip" data-status="정상">정상</button>
+                            <button type="button" class="filter-btn chip" data-status="지각">지각</button>
+                            <button type="button" class="filter-btn chip" data-status="결근">결근</button>
                         </div>
-                        <input type="hidden" name="status" id="statusFilter"
-                            value="<?= htmlspecialchars($_GET['status'] ?? '전체') ?>">
                     </div>
-                    <!-- <div class="form-group">
-                        <button type="submit" class="btn btn-secondary" id="searchButton"
-                            style="width: 100%;">조회하기</button>
-                    </div> -->
                 </div>
             </form>
-
-            <!-- 근무상태 -->
-            <!-- <div class="form-group">
-                        <label class="form-label">근무상태</label>
-                        <div class="filter-chips" role="group" aria-label="근무상태">
-                            <button type="button" class="chip active" data-value="전체">전체</button>
-                            <button type="button" class="chip" data-value="정상">정상</button>
-                            <button type="button" class="chip" data-value="지각">지각</button>
-                            <button type="button" class="chip" data-value="조퇴">조퇴</button>
-                            <button type="button" class="chip" data-value="결근">결근</button>
-                        </div>
-                    </div> -->
-
-            <!-- 조회 -->
-            <!-- <div class="form-group">
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">조회하기</button>
-                    </div> -->
-
-            </div>
-            </form>
-
         </section>
 
-        <section class="section">
-
-            <h2 class="section-title">조회 결과</h2>
-
-            <?php if (empty($records)): ?>
-            <p class="no-results">조회된 근태 기록이 없습니다.</p>
-            <?php else: ?>
-
-            <?php
-            foreach ($records as $record): 
-            $badgeClass = match ($record['status']) {
-            '정상' => 'badge-success',
-            '지각', '조퇴' => 'badge-warning',
-            '결근' => 'badge-danger',
-            default => 'badge-secondary',
-            };
-            ?>
-
-            <div class="result-card card">
-                <div class="result-date">
-                    <?= htmlspecialchars($record['date']) ?> (
-                    <?= htmlspecialchars($record['dayOfWeek']) ?>)
-                </div>
-                <div class="grid grid-2">
-                    <div class="result-on">출근: <span>
-                            <?= htmlspecialchars($record['onTime']) ?>
-                        </span></div>
-                    <div class="result-off">퇴근: <span>
-                            <?= htmlspecialchars($record['offTime']) ?>
-                        </span></div>
-                    <div class="result-time">근무시간:
-                        <?= htmlspecialchars($record['workTime']) ?>
-                    </div>
-                    <div class="result-status"><span class="badge <?= htmlspecialchars($badgeClass) ?>">
-                            <?= htmlspecialchars($record['status']) ?>
-                        </span></div>
-                </div>
-            </div>
-
-            <?php endforeach; ?>
-            <?php endif; ?>
-
-        </section>
+        <section id="recordsList" class="results-list"></section>
     </main>
-    <script src="./js/record.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const recordsList = document.getElementById('recordsList');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+
+            function loadRecords() {
+                // 현재 활성화된 필터 찾기
+                const activeStatus = document.querySelector('.filter-btn.active').dataset.status;
+                const start = startDateInput.value;
+                const end = endDateInput.value;
+
+                // 로딩 표시
+                recordsList.innerHTML = '<div class="loading">데이터를 불러오는 중...</div>';
+
+                fetch(`get_records.php?status=${encodeURIComponent(activeStatus)}&startDate=${start}&endDate=${end}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.length === 0) {
+                            recordsList.innerHTML = '<p class="empty-msg">해당 조건에 맞는 기록이 없습니다.</p>';
+                            return;
+                        }
+
+                        let html = '';
+                        data.forEach(record => {
+                            const badgeClass = {
+                                '정상': 'badge-success',
+                                '지각': 'badge-warning',
+                                '결근': 'badge-danger'
+                            }[record.status] || 'badge-secondary';
+
+                            // 요일 계산 (0: 일, 1: 월...)
+                            const days = ['일', '월', '화', '수', '목', '금', '토'];
+                            const dayName = days[new Date(record.date).getDay()];
+
+                            html += `
+                        <div class="result-card card">
+                            <div class="result-date">${record.date} (${dayName})</div>
+                            <div class="grid grid-2">
+                                <div class="result-on">출근: <span>${record.onTime}</span></div>
+                                <div class="result-off">퇴근: <span>${record.offTime}</span></div>
+                                <div class="result-time">근무시간: ${record.workTime}</div>
+                                <div class="result-status"><span class="badge ${badgeClass}">${record.status}</span></div>
+                            </div>
+                        </div>
+                    `;
+                        });
+                        recordsList.innerHTML = html;
+                    })
+                    .catch(err => {
+                        recordsList.innerHTML = '<p class="error-msg">데이터 로드 중 오류가 발생했습니다.</p>';
+                    });
+            }
+
+            // 필터 버튼 클릭 이벤트
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    loadRecords();
+                });
+            });
+
+            // 날짜 변경 시 즉시 로드
+            startDateInput.addEventListener('change', loadRecords);
+            endDateInput.addEventListener('change', loadRecords);
+
+            // 페이지 접속 시 초기 로드
+            loadRecords();
+        });
+    </script>
 </body>
 
 </html>

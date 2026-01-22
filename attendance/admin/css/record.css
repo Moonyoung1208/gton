@@ -8,11 +8,12 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .status-card {
     background: #fff;
-    border-radius: 15px;
+    border-radius: 6px;
     padding: 15px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     text-align: center;

@@ -21,13 +21,11 @@ $total_count = $conn->query($sql_total)->fetch_assoc()['cnt'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>직원 관리 - 근태ON</title>
-    <link rel="stylesheet" href="../css/font.css">
-    <link rel="stylesheet" href="../css/common.css">
-    <link rel="stylesheet" href="css/admin.css">
+
+    <?php include('head.php'); ?>
+    
     <link rel="stylesheet" href="css/employee.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
-        integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
-        crossorigin="anonymous" referrerpolicy="no-referrer">
+
 </head>
 
 <body>
@@ -35,126 +33,42 @@ $total_count = $conn->query($sql_total)->fetch_assoc()['cnt'];
         <div class="admin-nav-link">
             <i class="fa-solid fa-bars" id="menuOpen"></i>
         </div>
+        <div class="page-header">
+            <h2 class="page-title">GTON 직원관리</h2>
+        </div>
     </div>
 
-    <nav class="admin-nav" id="sidebar">
-        <div class="sidebar-header">
-            <span class="sidebar-title font-godo">관리자 메뉴</span>
-            <i class="fa-solid fa-xmark" id="menuClose"></i>
-        </div>
-
-        <ul class="admin-nav-list">
-            <li class="admin-nav-item">
-                <a href="admin-dashboard.html" class="admin-nav-link">
-                    <i class="fa-solid fa-chart-line"></i> 대시보드
-                </a>
-            </li>
-            <li class="admin-nav-item">
-                <a href="admin-employees.html" class="admin-nav-link active">
-                    <i class="fa-solid fa-users"></i> 직원관리
-                </a>
-            </li>
-            <li class="admin-nav-item">
-                <a href="admin-records.html" class="admin-nav-link ">
-                    <i class="fa-solid fa-calendar-days"></i> 부서관리
-                </a>
-            </li>
-            <li class="admin-nav-item">
-                <a href="admin-settings.html" class="admin-nav-link">
-                    <i class="fa-solid fa-gear"></i> 전체설정
-                </a>
-            </li>
-        </ul>
-
-        <div class="sidebar-footer">
-            <a href="logout.php" class="logout-btn">
-                <i class="fa-solid fa-right-from-bracket"></i> 로그아웃
-            </a>
-        </div>
-    </nav>
-
-    <div class="sidebar-overlay" id="overlay"></div>
+    <?php include('header.php'); ?>
 
 
     <main class="container">
-        <header class="page-header">
-            <h1 class="section-title">직원 관리</h1>
-            <a href="add-employee.html" class="btn btn-primary full">
-                <i class="fa-solid fa-user-plus"></i> 직원 추가
-            </a>
-        </header>
-
         <div class="search-section">
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="직원명, 이메일, 부서 검색">
                 <button id="btnSearch" class="btn btn-primary" style="white-space: nowrap; width: 80px;">검색</button>
             </div>
         </div>
+        <a href="add-employee.html" class="btn btn-primary full">
+            <i class="fa-solid fa-user-plus"></i> 직원 추가
+        </a>
+
 
         <div class="setting-item">
             <div class="stat-label">전체 직원</div>
             <div class="stat-value">
                 <?php echo $total_count; ?>명
-            </div>
+    </div>
+    </div>
+
+    <section class="section">
+        <div class="employee-list" id="employeeContainer"></div>
+
+        <div id="loadMoreSection" style="margin-top: 20px; text-align: center;">
+            <button id="btnLoadMore" class="btn btn-outline" style="width: 100%;">
+                더보기 <i class="fa-solid fa-chevron-down"></i>
+            </button>
         </div>
-
-        <section class="section">
-            <div class="employee-list" id="employeeContainer"></div>
-
-            <div id="loadMoreSection" style="margin-top: 20px; text-align: center;">
-                <button id="btnLoadMore" class="btn btn-outline" style="width: 100%;">
-                    더보기 <i class="fa-solid fa-chevron-down"></i>
-                </button>
-            </div>
-        </section>
-
-        <!-- <section class="section">
-            <div class="employee-list">
-                <?php if ($result->num_rows > 0): ?>
-                <?php while($row = $result->fetch_assoc()): ?>
-                <div class="employee-card" onclick="viewDetail(<?php echo $row['user_id']; ?>)">
-                    <div class="emp-info-group">
-                        <div class="emp-row">
-                            <span class="emp-label">성명</span>
-                            <span class="emp-value"><strong>
-                                    <?php echo htmlspecialchars($row['name']); ?>
-                                </strong></span>
-                        </div>
-                        <div class="emp-row">
-                            <span class="emp-label">이메일</span>
-                            <span class="emp-value">
-                                <?php echo htmlspecialchars($row['email']); ?>
-                            </span>
-                        </div>
-                        <div class="emp-row">
-                            <span class="emp-label">부서/직급</span>
-                            <span class="emp-value">
-                                <?php echo htmlspecialchars($row['dept_name'] ?? '미지정'); ?> /
-                                <?php echo htmlspecialchars($row['position']); ?>
-                            </span>
-                        </div>
-                        <div class="emp-row">
-                            <span class="emp-label">입사일</span>
-                            <span class="emp-value">
-                                <?php echo $row['join_date']; ?>
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="emp-status-actions">
-                        <?php if($row['status'] == 'active'): ?>
-                        <span class="badge badge-success">재직</span>
-                        <?php else: ?>
-                        <span class="badge badge-danger">퇴사</span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <?php endwhile; ?>
-                <?php else: ?>
-                <div class="empty-state">등록된 직원이 없습니다.</div>
-                <?php endif; ?>
-            </div>
-        </section> -->
+    </section>
     </main>
 
     <script>
@@ -240,7 +154,6 @@ $total_count = $conn->query($sql_total)->fetch_assoc()['cnt'];
             location.href = `detail-employee.html?id=${userId}`;
         }
     </script>
-    <script src="./js/nav.js"></script>
 </body>
 
 </html>

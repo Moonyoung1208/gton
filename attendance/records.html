@@ -70,6 +70,33 @@ $currentEndDate = date('Y-m-d');
         integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
         crossorigin="anonymous" referrerpolicy="no-referrer">
 
+    <!-- favi -->
+    <link rel="apple-touch-icon" sizes="57x57" href="/attendance/assets/favi/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/attendance/assets/favi/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/attendance/assets/favi/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/attendance/assets/favi/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/attendance/assets/favi/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/attendance/assets/favi/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/attendance/assets/favi/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/attendance/assets/favi/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/attendance/assets/favi/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/attendance/assets/favi/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/attendance/assets/favi/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/attendance/assets/favi/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/attendance/assets/favi/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- open graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://gton.dothome.co.kr">
+    <meta property="og:title" content="근태ON">
+    <meta property="og:description" content="근태온, 쉽고 빠른 근태관리의 시작">
+    <meta property="og:image" content="https://gton.dothome.co.kr/attendance/assets/og-image.png">
+    <meta property="og:site_name" content="근태 ON">
+    <meta property="og:locale" content="ko_KR">
     <!-- FullCalendar JS -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
 </head>
@@ -129,10 +156,24 @@ $currentEndDate = date('Y-m-d');
                             center: 'prev title next',
                             right: ''
                         },
-                        events: eventsData,
+
+                        eventSources: [
+                            {
+                                events: eventsData // 1. 내 출근 기록
+                            },
+                            {
+                                url: './admin/get_holidays.php', // 2. 공휴일 API
+                                method: 'GET',
+                                failure: function () {
+                                    console.error('공휴일 데이터를 불러오는 데 실패했습니다.');
+                                }
+                            }
+                        ],
 
                         // 이벤트(배지) 클릭 시 상세정보 표시
                         eventClick: function (info) {
+                            // 구글 공휴일 클릭 시 상세창 띄우지 않음
+                            if (info.event.extendedProps.source === 'google') return;
                             showDetail(info.event.startStr, info.event.extendedProps);
                         },
 
@@ -149,31 +190,40 @@ $currentEndDate = date('Y-m-d');
                         // 배지(이벤트) 모양 커스텀
                         eventContent: function (arg) {
                             let container = document.createElement('div');
-                            container.className = 'fc-event-main-inner';
 
+                            // 1. 공휴일인 경우 (get_holidays.php에서 보낸 extendedProps.source 확인)
+                            if (arg.event.extendedProps.source === 'holiday') {
+                                container.innerHTML = `
+                            <div style="color: #757575; white-space: normal; font-size: 11px; text-align: center; font-weight: bold; margin-top: 2px; background: #E0E0E0; border-radius: 4px; padding: 2px;">
+                            ${arg.event.title}
+                            </div>
+                            `;
+                                return { domNodes: [container] };
+                            }
+
+                            // 2. 출근 기록인 경우 (기존 배지 로직)
+                            container.className = 'fc-event-main-inner';
                             const badgeClasses = {
                                 '정상': 'badge-success',
                                 '결근': 'badge-danger',
                                 '지각': 'badge-warning',
                             };
-
                             let badgeClass = badgeClasses[arg.event.title] || 'badge-secondary';
 
                             container.innerHTML = `
-                <center>
-                    <span class="badge ${badgeClass}" style="font-size: 11px; padding: 4px 8px; cursor:pointer;">
-                        ${arg.event.title}
-                    </span>
-                </center>
-            `;
+                        <center>
+                            <span class="badge ${badgeClass}" style="font-size: 11px; padding: 4px 8px; cursor:pointer;">
+                            ${arg.event.title}
+                            </span>
+                        </center>
+                        `;
                             return { domNodes: [container] };
-                        }
-                    });
+                            }
+                        });
 
-                    // ★ 중요: 달력을 화면에 그림
                     calendar.render();
 
-                    // "오늘로 이동" 버튼 기능 연결
+                    // "오늘로 이동" 버튼
                     const goTodayBtn = document.getElementById('go-today');
                     if (goTodayBtn) {
                         goTodayBtn.addEventListener('click', function () {
@@ -181,7 +231,6 @@ $currentEndDate = date('Y-m-d');
                         });
                     }
                 });
-
                 // 상세 정보 표시 함수 (전역으로 분리)
                 function showDetail(dateStr, props) {
                     var detailBox = document.getElementById('day-detail');

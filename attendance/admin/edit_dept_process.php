@@ -1,8 +1,13 @@
 <?php
 session_start();
 require_once '../config.php';
-$conn = connectDB();
 
+// 관리자 권한 확인
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
+    exit("권한이 없습니다.");
+}
+
+$conn = connectDB();
 $id = $_GET['id'] ?? '';
 $new_name = trim($_GET['new_name'] ?? '');
 
@@ -12,11 +17,11 @@ if ($id && $new_name) {
     $stmt->bind_param("si", $new_name, $id);
 
     if ($stmt->execute()) {
-        $_SESSION['status'] = 'success';
-        $_SESSION['msg'] = '부서명이 수정되었습니다.';
+        header("Location: admin-departments.php?status=edit_success");
     } else {
-        $_SESSION['status'] = 'error';
-        $_SESSION['msg'] = '수정 실패: ' . $conn->error;
+        header("Location: admin-departments.php?status=error");
     }
+} else {
+    header("Location: admin-departments.php");
 }
-header("Location: add-department.html");
+exit;

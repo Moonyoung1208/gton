@@ -2,47 +2,26 @@
 session_start();
 require_once '../config.php';
 
-if (!isset($_SESSION['admin_logged_in'])) {
-    exit;
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
+    exit("권한이 없습니다.");
 }
 
-$conn = connectDB();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['dept_name'])) {
+    $conn = connectDB();
+    $dept_name = $_POST['dept_name'];
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $dept_name = trim($_POST['dept_name']);
-
-    if (empty($dept_name)) {
-        $_SESSION['status'] = 'error';
-        $_SESSION['msg'] = '부서명을 입력해주세요.';
-        header("Location: add-department.php");
-        exit;
-    }
-
-    // 중복 체크
-    $check_sql = "SELECT id FROM departments WHERE dept_name = ?";
-    $stmt = $conn->prepare($check_sql);
-    $stmt->bind_param("s", $dept_name);
-    $stmt->execute();
-    if ($stmt->get_result()->num_rows > 0) {
-        $_SESSION['status'] = 'error';
-        $_SESSION['msg'] = '이미 존재하는 부서명입니다.';
-        header("Location: add-department.php");
-        exit;
-    }
-
-    // 삽입
-    $sql = "INSERT INTO departments (dept_name) VALUES (?)";
+    $sql = "INSERT INTO departments (dept_name, created_at) VALUES (?, NOW())";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $dept_name);
 
     if ($stmt->execute()) {
-        $_SESSION['status'] = 'success';
-        $_SESSION['msg'] = '부서가 추가되었습니다.';
+        header("Location: admin-departments.php?status=dept_success");
     } else {
-        $_SESSION['status'] = 'error';
-        $_SESSION['msg'] = '저장 실패: ' . $conn->error;
+        header("Location: admin-departments.php?status=dept_error");
     }
-
-    header("Location: add-department.html");
-    exit;
+    $stmt->close();
+    $conn->close();
+} else {
+    header("Location: admin-departments.php");
 }
+exit;

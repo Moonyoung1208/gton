@@ -1,67 +1,22 @@
 <?php
 session_start();
-
 require_once '../config.php'; 
 
-// 1. 관리자 로그인 상태 확인 (보안)
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
     header("Location: admin-login.html");
     exit;
 }
 
 $conn = connectDB();
-$message = '';
-$admin_name = $_SESSION['admin_name']; 
 
-// 2. 설정 저장 처리 (POST 요청 시)
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_settings'])) {
-    
-    // HTML form fields (name 속성으로 가정)
-    $check_in = trim($_POST['work-start']);
-    $check_out = trim($_POST['work-end']);
-    $late_time = (int)trim($_POST['late-time']); // 지각 기준 (분)
-
-    // HH:MM:SS 형식으로 변환
-    $check_in_full = $check_in . ':00';
-    $check_out_full = $check_out . ':00';
-    
-    // UPDATE 쿼리 사용
-    $sql = "UPDATE settings 
-            SET standard_check_in = ?, 
-                standard_check_out = ?, 
-                late_threshold = ?,
-                updated_at = NOW()
-            WHERE setting_id = 1";
-
-    try {
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssi", $check_in_full, $check_out_full, $late_time);
-        $stmt->execute();
-        
-        if ($stmt->affected_rows > 0) {
-            $message = "근무 기준 설정이 성공적으로 저장되었습니다.";
-        } else {
-            $message = "변경 사항이 없거나 설정 레코드가 존재하지 않습니다. (초기 설정을 확인하세요)";
-        }
-
-    } catch (Exception $e) {
-        $message = "설정 저장 중 오류가 발생했습니다: " . $e->getMessage();
-        error_log("Admin Settings Save Error: " . $e->getMessage());
-    } finally {
-        if (isset($stmt)) $stmt->close();
-    }
-}
-
-// 3. 현재 설정값 불러오기
+// 현재 설정값 조회
 $sql_select = "SELECT standard_check_in, standard_check_out, late_threshold FROM settings WHERE setting_id = 1";
 $result_select = $conn->query($sql_select);
 $settings_row = $result_select->fetch_assoc();
 
-// 폼에 표시할 값 준비
-$current_check_in = substr($settings_row['standard_check_in'] ?? '09:00:00', 0, 5);
-$current_check_out = substr($settings_row['standard_check_out'] ?? '18:00:00', 0, 5);
+$current_check_in = isset($settings_row['standard_check_in']) ? substr($settings_row['standard_check_in'], 0, 5) : '09:00';
+$current_check_out = isset($settings_row['standard_check_out']) ? substr($settings_row['standard_check_out'], 0, 5) : '18:00';
 $current_late_time = $settings_row['late_threshold'] ?? 10; 
-
 ?>
 
 <!DOCTYPE html>
@@ -71,12 +26,7 @@ $current_late_time = $settings_row['late_threshold'] ?? 10;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 설정 - 근태ON</title>
-    <link rel="stylesheet" href="../css/font.css">
-    <link rel="stylesheet" href="../css/common.css">
-    <link rel="stylesheet" href="./css/admin.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
-        integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
-        crossorigin="anonymous" referrerpolicy="no-referrer">
+    <?php include('head.php'); ?>
 </head>
 
 <body>
@@ -84,118 +34,87 @@ $current_late_time = $settings_row['late_threshold'] ?? 10;
         <div class="admin-nav-link">
             <i class="fa-solid fa-bars" id="menuOpen" style="display: block;"></i>
         </div>
+        <div class="page-header">
+            <h2 class="page-title">GTON 알림 및 보안 설정</h2>
+        </div>
     </div>
-    <nav class="admin-nav" id="sidebar">
-        <div class="sidebar-header">
-            <span class="sidebar-title font-godo">관리자 메뉴</span>
-            <i class="fa-solid fa-xmark" id="menuClose"></i>
-        </div>
 
-        <ul class="admin-nav-list">
-            <li class="admin-nav-item">
-                <a href="admin-dashboard.html" class="admin-nav-link">
-                    <i class="fa-solid fa-chart-line"></i> 대시보드
-                </a>
-            </li>
-            <li class="admin-nav-item">
-                <a href="admin-employees.html" class="admin-nav-link">
-                    <i class="fa-solid fa-users"></i> 직원관리
-                </a>
-            </li>
-            <li class="admin-nav-item">
-                <a href="admin-records.html" class="admin-nav-link">
-                    <i class="fa-solid fa-calendar-days"></i> 부서관리
-                </a>
-            </li>
-            <li class="admin-nav-item">
-                <a href="admin-settings.html" class="admin-nav-link active">
-                    <i class="fa-solid fa-gear"></i> 전체설정
-                </a>
-            </li>
-        </ul>
-
-        <div class="sidebar-footer">
-            <a href="logout.php" class="logout-btn">
-                <i class="fa-solid fa-right-from-bracket"></i> 로그아웃
-            </a>
-        </div>
-    </nav>
-
-    <div class="sidebar-overlay" id="overlay"></div>
+    <?php include('header.php'); ?>
 
     <main class="container">
-
         <section class="section">
-            <h2 class="section-title">근태 설정</h2>
-
-            <?php if ($message): ?>
-            <p style="color: green; font-weight: bold; margin-bottom: 15px;">
-                <?= htmlspecialchars($message) ?>
-            </p>
-            <?php endif; ?>
-
-            <form method="POST">
+            <h3 class="section-title">전사 근무 기준 설정</h3>
+            <form method="POST" action="update_settings.php">
                 <div class="form-group">
-                    <label class="form-label" for="work-start">정규 출근 시각</label>
-                    <input type="time" id="work-start" name="work-start" class="form-input"
-                        value="<?= $current_check_in ?>" required>
+                    <label class="form-label">출근 시각</label>
+                    <input type="time" name="work-start" class="form-input" value="<?= $current_check_in ?>" required>
                 </div>
-
                 <div class="form-group">
-                    <label class="form-label" for="work-end">정규 퇴근 시각</label>
-                    <input type="time" id="work-end" name="work-end" class="form-input"
-                        value="<?= $current_check_out ?>" required>
+                    <label class="form-label">퇴근 시각</label>
+                    <input type="time" name="work-end" class="form-input" value="<?= $current_check_out ?>" required>
                 </div>
-
                 <div class="form-group">
-                    <label class="form-label" for="late-time">지각 기준 (분)</label>
-                    <input type="number" id="late-time" name="late-time" class="form-input"
-                        value="<?= $current_late_time ?>" required>
+                    <label class="form-label">지각 허용 기준 (분)</label>
+                    <input type="number" name="late-time" class="form-input" value="<?= $current_late_time ?>" required>
+                    <p class="form-desc" style="font-size: 0.8rem; color: #888; margin-top: 5px;">* 설정한 시간(분) 이후 출근 시
+                        '지각'으로 자동 처리됩니다.</p>
                 </div>
-
-                <button type="submit" name="save_settings" class="btn btn-primary full"><i class="fa-regular fa-circle-check"></i> 저장하기</button>
+                <button type="button" id="btn-save-settings" class="btn btn-primary full">
+                    <i class="fa-regular fa-circle-check"></i> 설정 저장
+                </button>
             </form>
         </section>
 
-        <section class="section">
-            <h2 class="section-title">부서 관리</h2>
-            <div class="setting-list grid grid-4">
-                <?php
-            // 부서 목록 쿼리
-            $dept_sql = "SELECT dept_name FROM departments ORDER BY dept_name ASC";
-            $dept_result = $conn->query($dept_sql);
+        <script>
+            //근무시간 설정 완료 alert
+            document.addEventListener('DOMContentLoaded', function () {
+                const saveBtn = document.getElementById('btn-save-settings');
+                const settingsForm = saveBtn.closest('form'); // 버튼이 속한 폼 찾기
 
-            if ($dept_result && $dept_result->num_rows > 0) {
-                while($row = $dept_result->fetch_assoc()) {
-                    // 칩(Chip) 스타일로 부서명 출력
-                    echo '<span class="badge badge-outline">' . htmlspecialchars($row['dept_name']) . '</span>';
+                saveBtn.addEventListener('click', function () {
+                    Swal.fire({
+                        title: '근무 기준을 변경하시겠습니까?',
+                        text: "변경사항은 이후 기록부터 적용되며, 이전 출퇴근 기록에는 영향을 주지 않습니다.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#4A90E2',
+                        cancelButtonColor: '#888',
+                        confirmButtonText: '변경하기',
+                        cancelButtonText: '취소',
+                        reverseButtons: true // 확인/취소 버튼 위치 반전 (선택사항)
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // 사용자가 확인을 눌렀을 때만 폼 제출
+                            settingsForm.submit();
+                        }
+                    });
+                });
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const status = urlParams.get('status');
+
+                if (status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '설정 저장 완료',
+                        text: '전사 근무 기준이 성공적으로 업데이트되었습니다.',
+                        confirmButtonColor: '#4A90E2'
+                    }).then(() => {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    });
+                } else if (status === 'error') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '저장 실패',
+                        text: '데이터베이스 오류가 발생했습니다.',
+                        confirmButtonColor: '#ff5252'
+                    });
                 }
-            } else {
-                echo '<span style="color: var(--Gray-400); font-size: 0.9rem;">등록된 부서가 없습니다.</span>';
-            }
-            $conn->close();
-            ?>
-            </div>
-            <div class="setting-item">
-                <a href="./add-department.html" class="btn btn-primary full"><i class="fa-solid fa-folder-plus"></i> 부서
-                    추가</a>
-            </div>
-        </section>
+            });
+        </script>
 
         <section class="section">
-            <h2 class="section-title">직원 관리</h2>
-            <div class="setting-item">
-                <span>전체 직원 수</span>
-                <span>0 명</span>
-            </div>
-            <div class="setting-item">
-                <a href="./add-employee.html" class="btn btn-primary full"><i class="fa-solid fa-user-plus"></i> 직원
-                    추가</a>
-            </div>
-        </section>
-
-        <section class="section">
-            <h2 class="section-title">알림 설정</h2>
+            <h3>알림 설정</h3>
             <div class="setting-item">
                 <div class="setting-info">
                     <div class="setting-label">지각 알림</div>
@@ -242,30 +161,67 @@ $current_late_time = $settings_row['late_threshold'] ?? 10;
         </section>
 
         <section class="section">
-            <h2 class="section-title">보안 설정</h2>
-            <div class="form-group">
-                <label class="form-label" for="current-password">현재 비밀번호</label>
-                <input type="password" id="current-password" class="form-input">
-            </div>
+            <h3>보안 설정</h3>
+            <form id="password-form" method="POST" action="update_password.php">
+                <div class="form-group">
+                    <label class="form-label" for="current-password">현재 비밀번호</label>
+                    <input type="password" name="current_pw" id="current-password" class="form-input" required>
+                </div>
 
-            <div class="form-group">
-                <label class="form-label" for="new-password">새 비밀번호</label>
-                <input type="password" id="new-password" class="form-input">
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="new-password">새 비밀번호</label>
+                    <input type="password" name="new_pw" id="new-password" class="form-input" required>
+                </div>
 
-            <div class="form-group">
-                <label class="form-label" for="confirm-password">새 비밀번호 확인</label>
-                <input type="password" id="confirm-password" class="form-input">
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="confirm-password">새 비밀번호 확인</label>
+                    <input type="password" id="confirm-password" class="form-input" required>
+                </div>
 
-            <button class="btn btn-primary full">비밀번호 변경</button>
+                <button type="submit" class="btn btn-primary full">비밀번호 변경</button>
+            </form>
         </section>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // 1. URL에서 pw_status 파라미터 가져오기
+                const urlParams = new URLSearchParams(window.location.search);
+                const pwStatus = urlParams.get('pw_status');
 
-        <div class="logout">
-            <a href="#">로그아웃</a>
-        </div>
+                // 2. 상태에 따른 SweetAlert 메시지 설정
+                if (pwStatus) {
+                    let swalConfig = {
+                        confirmButtonColor: '#3457D5',
+                        confirmButtonText: '확인'
+                    };
+
+                    if (pwStatus === 'success') {
+                        Swal.fire({
+                            ...swalConfig,
+                            icon: 'success',
+                            title: '변경 완료',
+                            text: '비밀번호가 안전하게 변경되었습니다.'
+                        });
+                    } else if (pwStatus === 'wrong_pw') {
+                        Swal.fire({
+                            ...swalConfig,
+                            icon: 'error',
+                            title: '변경 실패',
+                            text: '현재 비밀번호가 일치하지 않습니다.'
+                        });
+                    } else if (pwStatus === 'error') {
+                        Swal.fire({
+                            ...swalConfig,
+                            icon: 'error',
+                            title: '오류 발생',
+                            text: '데이터베이스 처리 중 문제가 발생했습니다.'
+                        });
+                    }
+
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            });
+        </script>
     </main>
-    <script src="./js/nav.js"></script>
 </body>
 
 </html>

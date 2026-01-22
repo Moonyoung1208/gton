@@ -41,15 +41,17 @@ $display_work_hours = $record ? ($record['work_hours'] ?? 0.00) : 0.00;
 
 // 시간 변환
 
-// 총 근무 시간을 분 단위로 변환 (정수로 반올림)
-$total_minutes_int = round($display_work_hours * 60);
-
-// 시와 분을 계산
-$hours = floor($total_minutes_int / 60);
-$minutes = $total_minutes_int % 60;
-
-//HH:MM 형식으로 포맷
-$display_work_duration = sprintf("%02d:%02d", $hours, $minutes);
+if ($display_work_hours && strpos($display_work_hours, ':') !== false) {
+    // DB에 '08:30' 형태로 저장되어 있는 경우 그대로 표시
+    $display_work_duration = $display_work_hours;
+} else {
+    // 기록이 없거나 기존 숫자 형태인 경우 안전하게 처리
+    $raw_hours = (float)$display_work_hours;
+    $total_minutes_int = (int)round($raw_hours * 60);
+    $hours = floor($total_minutes_int / 60);
+    $minutes = $total_minutes_int % 60;
+    $display_work_duration = sprintf("%02d:%02d", $hours, $minutes);
+}
 
 // 상태 코드를 사용자 친화적인 한글로 변환
 $status_map = [
@@ -78,12 +80,9 @@ $current_month_end = date('Y-m-t');   // 예: 2025-12-31
 $summary_sql = "SELECT 
                     COUNT(CASE WHEN status = 'normal' THEN 1 END) AS normal_days,
                     COUNT(CASE WHEN status = 'late' THEN 1 END) AS late_days,
-                    SUM(work_hours) AS total_work_hours
-                FROM 
-                    records
-                WHERE 
-                    user_id = ? 
-                    AND work_date BETWEEN ? AND ?";
+                    SUM(TIME_TO_SEC(work_hours)) AS total_seconds
+                FROM records
+                WHERE user_id = ? AND work_date BETWEEN ? AND ?";
 
 $summary_stmt = $conn->prepare($summary_sql);
 $summary_stmt->bind_param("iss", $user_id, $current_month_start, $current_month_end);
@@ -93,18 +92,13 @@ $summary_result = $summary_stmt->get_result();
 if ($raw_summary = $summary_result->fetch_assoc()) {
     $summary_data['normal_days'] = (int)$raw_summary['normal_days'];
     $summary_data['late_days'] = (int)$raw_summary['late_days'];
-    
-    // 총 출근일 = 정상 출근일 + 지각일
     $summary_data['total_work_days'] = $summary_data['normal_days'] + $summary_data['late_days'];
     
-    // 총 근무시간 포맷 (HH:MM)
-    $raw_total_hours = (float)($raw_summary['total_work_hours'] ?? 0.00);
-    $total_minutes_int = (int)round($raw_total_hours * 60);
-
-    $hours = floor($total_minutes_int / 60);
-    $minutes = $total_minutes_int % 60;
-
-    $summary_data['total_work_hours'] = sprintf("%02d:%02d", $hours, $minutes);
+    // 초 단위를 HH:MM으로 변환
+    $total_secs = (int)($raw_summary['total_seconds'] ?? 0);
+    $h = floor($total_secs / 3600);
+    $m = floor(($total_secs % 3600) / 60);
+    $summary_data['total_work_hours'] = sprintf("%02d:%02d", $h, $m);
 }
 
 $summary_stmt->close();
@@ -169,6 +163,34 @@ if ($summary_data['total_work_days'] > 0) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
         integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
         crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- favi -->
+    <link rel="apple-touch-icon" sizes="57x57" href="/attendance/assets/favi/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/attendance/assets/favi/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/attendance/assets/favi/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/attendance/assets/favi/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/attendance/assets/favi/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/attendance/assets/favi/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/attendance/assets/favi/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/attendance/assets/favi/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/attendance/assets/favi/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/attendance/assets/favi/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/attendance/assets/favi/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/attendance/assets/favi/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/attendance/assets/favi/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- open graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://gton.dothome.co.kr">
+    <meta property="og:title" content="근태ON">
+    <meta property="og:description" content="근태온, 쉽고 빠른 근태관리의 시작">
+    <meta property="og:image" content="https://gton.dothome.co.kr/attendance/assets/og-image.png">
+    <meta property="og:site_name" content="근태 ON">
+    <meta property="og:locale" content="ko_KR">
 
     <!-- sweetalert -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

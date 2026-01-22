@@ -118,6 +118,7 @@ body {
     cursor: pointer;
     transition: all 0.3s;
     font-weight: 500;
+    font-family: 'Pretendard', -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
 .btn-sm {
@@ -176,9 +177,6 @@ button:disabled {
     background-color: #da190b;
 }
 
-.btn-block {
-    width: 100%;
-}
 
 /* Form */
 .form-group {
@@ -366,7 +364,7 @@ input[type="email"] {
 
 /* sweetalert style */
 div:where(.swal2-container) h2:where(.swal2-title) {
-    font-size: 1.5rem !important    ;
+    font-size: 1.5rem !important;
     font-family: 'Godo' !important;
     font-weight: bold;
 }

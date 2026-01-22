@@ -51,6 +51,7 @@
     background-color: var(--main-50);
     padding: 1rem;
     border-radius: 6px;
+    /* box-shadow: 1px 1px 2px #00000010; */
 }
 
 .admin-nav-link {
@@ -76,7 +77,7 @@
 
 /* 푸터/로그아웃 */
 .sidebar-footer {
-    padding: 1rem;
+    padding: 0.5rem;
     border-top: 1px solid var(--Gray-200);
 }
 
@@ -110,9 +111,27 @@
 
 /* 메뉴 열기 버튼 스타일 */
 .admin-menu {
+    display: flex;
+    gap: 1rem;
     padding: 1rem;
     font-size: 1.5rem;
     cursor: pointer;
+}
+
+.page-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--gary-800);
+    background-color: var(--main-50);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    width: 100%;
+    /* box-shadow: 1px 1px 2px #00000010; */
+}
+
+.page-title {
+    font-size: 20px;
 }
 
 .admin-stats {

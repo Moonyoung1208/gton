@@ -1,0 +1,42 @@
+.help-text {
+    font-size: 14px;
+    text-align: center;
+    color: var(--Gray-600);
+}
+
+.fc-day-sun a {
+    color: red;
+}
+
+.fc-day-sat a {
+    color: blue;
+}
+
+.fc-daygrid-block-event .fc-event-title {
+    color: var(--main-color);
+}
+
+.holiday-event {
+    background-color: var(--main-50) !important;
+    border: none !important;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+}
+
+.sync-btn {
+    margin-top: 1rem;
+}
+
+/* 구글 데이터 (연한 빨강) */
+.google-holiday {
+    background-color: #FFEBEE !important;
+    border-left: 3px solid #EF5350 !important;
+}
+
+/* 수동 등록 데이터 (연한 파랑 또는 다른 색) */
+.manual-holiday {
+    background-color: #E3F2FD !important;
+    color: #1565C0 !important;
+    border-left: 3px solid #2196F3 !important;
+}

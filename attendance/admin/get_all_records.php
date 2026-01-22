@@ -3,60 +3,57 @@ session_start();
 require_once '../config.php';
 header('Content-Type: application/json');
 
-$conn = connectDB();
-$startDate = $_GET['startDate'] ?? date('Y-m-d');
-$dept_id = $_GET['dept_id'] ?? '';
+// 에러 발생 시 JSON으로 응답하기 위한 설정
+ini_set('display_errors', 0);
 
-// 1. 기본 조건 (날짜 기준)
-$where = "WHERE r.work_date = ?";
-$params = [$startDate];
-$types = "s";
+try {
+    $conn = connectDB();
+    $startDate = $_GET['startDate'] ?? date('Y-m-d');
+    $dept_id = $_GET['dept_id'] ?? '';
 
-if ($dept_id) {
-    $where .= " AND u.dept_id = ?";
-    $params[] = $dept_id;
-    $types .= "i";
-}
+    // 1. 기본 조건 (날짜 기준)
+    $where = "WHERE r.work_date = ?";
+    $params = [$startDate];
+    $types = "s";
 
-// SQL 쿼리 수정 (u.user_id와 s.user_id 중복 방지 위해 명시)
-$sql = "SELECT 
-            r.record_id, r.user_id, r.work_date, r.check_in_time, r.check_out_time, 
-            r.status, r.is_edited, r.edit_reason, r.work_hours,
-            u.name, 
-            d.dept_name, 
-            s.standard_check_out
-        FROM records r 
-        JOIN users u ON r.user_id = u.user_id 
-        LEFT JOIN departments d ON u.dept_id = d.id 
-        LEFT JOIN settings s ON u.user_id = s.user_id
-        $where 
-        ORDER BY (r.check_out_time IS NULL) DESC, r.check_in_time DESC";
+    if ($dept_id) {
+        $where .= " AND u.dept_id = ?";
+        $params[] = $dept_id;
+        $types .= "i";
+    }
 
-$stmt = $conn->prepare($sql);
+    // SQL 쿼리 수정: settings 테이블을 user_id 없이 조인하거나 
+    // 서브쿼리로 전사 기준 퇴근 시간을 가져옵니다.
+    $sql = "SELECT 
+                r.record_id, r.user_id, r.work_date, r.check_in_time, r.check_out_time, 
+                r.status, r.is_edited, r.edit_reason, r.work_hours,
+                u.name, 
+                d.dept_name,
+                (SELECT standard_check_out FROM settings WHERE setting_id = 1) as standard_check_out
+            FROM records r 
+            JOIN users u ON r.user_id = u.user_id 
+            LEFT JOIN departments d ON u.dept_id = d.id 
+            $where 
+            ORDER BY (r.check_out_time IS NULL) DESC, r.check_in_time DESC";
 
-if (!empty($params)) {
-    // 가변 인자 사용 시 타입을 포함하여 배열을 구성하지 않고 
-    // 타입 문자열을 첫 번째 인자로 명시해야 합니다.
+    $stmt = $conn->prepare($sql);
     $stmt->bind_param($types, ...$params);
-}
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-$stmt->execute();
-$result = $stmt->get_result();
-if (!$result) {
-    echo json_encode(['list' => [], 'stats' => ['total' => 0, 'missing' => 0, 'edited' => 0], 'error' => $conn->error]);
-    exit;
-}
-$list = $result->fetch_all(MYSQLI_ASSOC);
+    $list = $result->fetch_all(MYSQLI_ASSOC);
 
-$stats = ['total' => count($list), 'missing' => 0, 'edited' => 0];
-foreach ($list as $row) {
-    if (!$row['check_out_time'])
-        $stats['missing']++;
-    if (isset($row['is_edited']) && $row['is_edited'] == 1)
-        $stats['edited']++;
-}
+    $stats = ['total' => count($list), 'missing' => 0, 'edited' => 0];
+    foreach ($list as $row) {
+        if (!$row['check_out_time'])
+            $stats['missing']++;
+        if (isset($row['is_edited']) && $row['is_edited'] == 1)
+            $stats['edited']++;
+    }
 
-echo json_encode([
-    'list' => $list,
-    'stats' => $stats
-]);
+    echo json_encode(['list' => $list, 'stats' => $stats]);
+
+} catch (Exception $e) {
+    echo json_encode(['error' => $e->getMessage()]);
+}
+exit;

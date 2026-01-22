@@ -1,0 +1,196 @@
+<?php
+session_start();
+require_once '../config.php';
+// 관리자 권한 확인
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
+    header("Location: admin-login.html");
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공휴일 관리 - 근태ON 관리자</title>
+
+    <?php include('head.php'); ?>
+    
+    <link rel="stylesheet" href="../css/records.css">
+    <link rel="stylesheet" href="./css/holidays.css">
+    
+</head>
+
+<body>
+    <div class="admin-menu">
+        <div class="admin-nav-link">
+            <i class="fa-solid fa-bars" id="menuOpen"></i>
+        </div>
+        <div class="page-header">
+            <h2 class="page-title">GTON 휴무일 관리</h2>
+        </div>
+    </div>
+
+    <?php include('header.php'); ?>
+
+    <main class="container">
+        <section class="section">
+            <p class="help-text">달력에서 날짜를 선택하여 공휴일을 등록하거나 삭제하세요.</p>
+
+            <div class="calendar-container">
+                <div id="calendar"></div>
+            </div>
+
+            <button type="button" id="sync-btn" class="sync-btn btn btn-primary full"
+                style="border:none; cursor:pointer;">
+                <i class="fa-solid fa-sync"></i> 구글 공휴일 동기화
+            </button>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            var calendarEl = document.getElementById('calendar');
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ko',
+                contentHeight: 450,
+                headerToolbar: {
+                    left: '',
+                    center: 'prev title next',
+                    right: ''
+                },
+
+                events: 'get_holidays.php',
+
+                // 날짜 클릭 시 등록
+                dateClick: function (info) {
+                    Swal.fire({
+                        title: '휴일 등록',
+                        text: info.dateStr + '을 휴일로 지정하시겠습니까?',
+                        input: 'text',
+                        inputPlaceholder: '휴일 명칭 (예: 추석, 창립기념일)',
+                        showCancelButton: true,
+                        confirmButtonColor: '#4e73df',
+                        confirmButtonText: '등록',
+                        cancelButtonText: '취소'
+
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value) {
+                            saveHoliday(info.dateStr, result.value);
+                        }
+                    });
+                },
+
+                // 기존 공휴일 클릭 시 삭제
+                eventClick: function (info) {
+                    const isGoogle = info.event.extendedProps.type === 'google';
+
+                    if (isGoogle) {
+                        Swal.fire('알림', '구글 공휴일 데이터는 삭제할 수 없습니다.', 'info');
+                        return;
+                    }
+
+                    Swal.fire({
+                        title: '공휴일 삭제',
+                        text: '[' + info.event.title + '] 휴일을 삭제하시겠습니까?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#C62828',
+                        confirmButtonText: '삭제',
+                        cancelButtonText: '취소'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            deleteHoliday(info.event.startStr);
+                        }
+                    });
+                }
+            });
+
+            calendar.render();
+
+            // 공휴일 등록 함수
+            function saveHoliday(date, name) {
+                fetch('holiday_process.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `action=add&date=${date}&name=${encodeURIComponent(name)}`
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            calendar.refetchEvents();
+                            Swal.fire('성공', '공휴일이 등록되었습니다.', 'success');
+                        }
+                    })
+                    .catch(err => console.error('Error:', err));
+            }
+
+            // 공휴일 삭제 함수
+            function deleteHoliday(date) {
+                fetch('holiday_process.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded' // 수정됨
+                    },
+                    body: `action=delete&date=${date}`
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            calendar.refetchEvents();
+                            Swal.fire('삭제 완료', '공휴일이 해제되었습니다.', 'success');
+                        }
+                    })
+                    .catch(err => console.error('Error:', err));
+            }
+
+            document.getElementById('sync-btn').addEventListener('click', function () {
+
+                // 구글 동기화 버튼 이벤트
+                Swal.fire({
+                    title: '구글 공휴일 동기화',
+                    text: '올해의 구글 공휴일 데이터를 DB에 저장하시겠습니까?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3457D5',
+                    confirmButtonText: '동기화 시작',
+                    cancelButtonText: '취소'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // 로딩 표시
+                        Swal.fire({
+                            title: '동기화 중...',
+                            text: '구글에서 데이터를 가져오고 있습니다.',
+                            allowOutsideClick: false,
+                            didOpen: () => { Swal.showLoading(); }
+                        });
+
+                        fetch('sync_holidays.php')
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    calendar.refetchEvents(); // 달력 새로고침
+                                    Swal.fire('성공', data.count + '개의 공휴일이 동기화되었습니다.', 'success');
+                                } else {
+                                    Swal.fire('오류', '동기화에 실패했습니다.', 'error');
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Error:', err);
+                                Swal.fire('오류', '서버 통신 중 에러가 발생했습니다.', 'error');
+                            });
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>

@@ -234,12 +234,13 @@
 }
 
 .modal-content {
+    margin: 40px auto;
     background-color: white;
     border-radius: 12px;
-    padding: 2rem;
+    padding: 1rem;
     max-width: 500px;
     width: 90%;
-    max-height: 80vh;
+    max-height: 90vh;
     overflow-y: auto;
 }
 
@@ -283,6 +284,13 @@
     gap: 1rem;
     justify-content: flex-end;
 }
+
+.modal .btn-group {
+    display: flex;
+    margin-top: 1rem;
+    gap: 0.5rem;
+}
+
 
 /* Employee Detail */
 .detail-section {

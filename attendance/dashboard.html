@@ -56,7 +56,6 @@ if ($display_work_hours && strpos($display_work_hours, ':') !== false) {
 // 상태 코드를 사용자 친화적인 한글로 변환
 $status_map = [
     'late' => '지각',
-    'early_leave' => '조퇴',
     'absent' => '결근',
     'normal' => '정상',
     'not_checked_in' => '미출근'
@@ -68,6 +67,7 @@ $display_status_kor = $status_map[$display_status];
 $summary_data = [
     'normal_days' => 0,
     'late_days' => 0,
+    'absent_days' => 0,
     'total_work_days' => 0,
     'total_work_hours' => 0.00
 ];
@@ -80,6 +80,7 @@ $current_month_end = date('Y-m-t');   // 예: 2025-12-31
 $summary_sql = "SELECT 
                     COUNT(CASE WHEN status = 'normal' THEN 1 END) AS normal_days,
                     COUNT(CASE WHEN status = 'late' THEN 1 END) AS late_days,
+                    COUNT(CASE WHEN status = 'absent' THEN 1 END) AS absent_days,
                     SUM(TIME_TO_SEC(work_hours)) AS total_seconds
                 FROM records
                 WHERE user_id = ? AND work_date BETWEEN ? AND ?";
@@ -92,7 +93,8 @@ $summary_result = $summary_stmt->get_result();
 if ($raw_summary = $summary_result->fetch_assoc()) {
     $summary_data['normal_days'] = (int)$raw_summary['normal_days'];
     $summary_data['late_days'] = (int)$raw_summary['late_days'];
-    $summary_data['total_work_days'] = $summary_data['normal_days'] + $summary_data['late_days'];
+    $summary_data['absent_days'] = (int)$raw_summary['absent_days'];
+    $summary_data['total_work_days'] = $summary_data['normal_days'] + $summary_data['late_days'] + $summary_data['absent_days'];
     
     // 초 단위를 HH:MM으로 변환
     $total_secs = (int)($raw_summary['total_seconds'] ?? 0);
@@ -194,6 +196,10 @@ if ($summary_data['total_work_days'] > 0) {
 
     <!-- sweetalert -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- kakao map services library -->
+    <script type="text/javascript"
+        src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=d59b88e548c7e955f323a84e09ce25ab&libraries=services"></script>
 </head>
 
 <body>
@@ -265,18 +271,25 @@ if ($summary_data['total_work_days'] > 0) {
 
 
             <div class="work-buttons">
-                <form action="check_out_process.php" method="POST" id="checkInForm">
-                    <button type="submit" id="checkOutBtn"
-                        class="btn btn-block <?= ($record && !$record['check_out_time']) ? 'btn-primary' : 'btn-secondary' ?>"
-                        <?=($record && !$record['check_out_time']) ? '' : 'disabled' ?>>
-                        퇴근하기
-                    </button>
-                </form>
-                <form action="check_in_process.php" method="POST" id="checkOutForm">
+                <form action="check_in_process.php" method="POST" id="checkInForm">
+                    <input type="hidden" name="latitude" id="latitude">
+                    <input type="hidden" name="longitude" id="longitude">
+                    <input type="hidden" name="location_addr" id="location_addr">
                     <button type="submit" id="checkInBtn"
                         class="btn btn-block <?= $record ? 'btn-secondary' : 'btn-primary' ?>" <?=$record ? 'disabled'
                         : '' ?>>
                         출근하기
+                    </button>
+                </form>
+
+                <form action="check_out_process.php" method="POST" id="checkOutForm">
+                    <input type="hidden" name="out_latitude" id="out_latitude">
+                    <input type="hidden" name="out_longitude" id="out_longitude">
+                    <input type="hidden" name="out_location_addr" id="out_location_addr">
+                    <button type="submit" id="checkOutBtn"
+                        class="btn btn-block <?= ($record && !$record['check_out_time']) ? 'btn-primary' : 'btn-secondary' ?>"
+                        <?=($record && !$record['check_out_time']) ? '' : 'disabled' ?>>
+                        퇴근하기
                     </button>
                 </form>
             </div>
@@ -344,8 +357,8 @@ if ($summary_data['total_work_days'] > 0) {
                 </tr>
                 <?php else: ?>
                 <?php foreach ($recent_records as $record_item): 
-                    // 퇴근 시간 처리: 기록이 없으면 '진행중' 또는 '미입력'으로 표시
-                    $out_time = $record_item['check_out_time'] ?? '진행중';
+                    // 퇴근 시간 처리
+                    $out_time = $record_item['check_out_time'] ?? '기록없음';
                     
                     // 근무 상태에 따라 뱃지 색상 클래스 결정
                     $badge_class = 'badge-success'; // 기본값: 정상
@@ -467,6 +480,87 @@ if ($summary_data['total_work_days'] > 0) {
                     checkOutBtn.innerText = "처리 중...";
                 });
             }
+        });
+
+        document.getElementById('checkInForm').addEventListener('submit', function (e) {
+            e.preventDefault(); // 일단 전송 중단
+
+            const form = this;
+            const btn = document.getElementById('checkInBtn');
+
+            if (!navigator.geolocation) {
+                Swal.fire('오류', '이 브라우저는 위치 정보를 지원하지 않습니다.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "위치 확인 중...";
+
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    // 좌표 저장
+                    document.getElementById('latitude').value = position.coords.latitude;
+                    document.getElementById('longitude').value = position.coords.longitude;
+
+                    // 전송 처리
+                    btn.innerText = "처리 중...";
+                    form.submit();
+                },
+                function (error) {
+                    btn.disabled = false;
+                    btn.innerText = "출근하기";
+                    Swal.fire('위치 오류', '위치 정보 공유를 승인해야 출근이 가능합니다.', 'error');
+                },
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        });
+
+        // 현재 위치 정보 로드 및 설정
+        document.addEventListener('DOMContentLoaded', function () {
+            const geocoder = new kakao.maps.services.Geocoder();
+            const locationDisplay = document.querySelector('.location-info');
+
+            // 위치 정보를 가져와서 화면과 폼에 설정하는 함수
+            function setLocationData() {
+                if (!navigator.geolocation) {
+                    locationDisplay.innerHTML = `<i class="fa-solid fa-location-dot"></i> 위치 정보 미지원`;
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    // 좌표를 주소로 변환 (역지오코딩)
+                    geocoder.coord2Address(lng, lat, function (result, status) {
+                        if (status === kakao.maps.services.Status.OK) {
+                            const addressName = result[0].address.address_name;
+
+                            // 1. 화면의 위치 정보 텍스트 업데이트
+                            locationDisplay.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${addressName}`;
+
+                            // 2. 출근용 hidden 필드 설정
+                            document.getElementById('location_addr').value = addressName;
+                            document.getElementById('latitude').value = lat;
+                            document.getElementById('longitude').value = lng;
+
+                            // 3. 퇴근용 hidden 필드 설정
+                            if (document.getElementById('out_location_addr')) {
+                                document.getElementById('out_location_addr').value = addressName;
+                                document.getElementById('out_latitude').value = lat;
+                                document.getElementById('out_longitude').value = lng;
+                            }
+                        } else {
+                            locationDisplay.innerHTML = `<i class="fa-solid fa-location-dot"></i> 주소 변환 실패`;
+                        }
+                    });
+                }, function (error) {
+                    console.error("Geolocation error: " + error.message);
+                    locationDisplay.innerHTML = `<i class="fa-solid fa-location-dot"></i> 위치 확인 실패`;
+                }, { enableHighAccuracy: true });
+            }
+
+            setLocationData(); // 페이지 로드 시 실행
         });
     </script>
 </body>

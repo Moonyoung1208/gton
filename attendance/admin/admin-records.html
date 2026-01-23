@@ -37,7 +37,7 @@ $dept_result = $conn->query("SELECT * FROM departments ORDER BY dept_name ASC");
     <main class="container">
         <section class="section">
             <div class="admin-card">
-                <h3>자동 결근 처리 (최근 일주일)</h3>
+                <h3 class="section-title">자동 결근 처리</h3>
                 <p>최근 일주일간 출근 기록이 없는 인원을 찾아 자동 결근처리합니다. (주말/휴일 제외)</p>
                 <button id="runAutoAbsent" class="btn btn-danger full">결근 처리 실행</button>
                 <div id="absentResult" style="margin-top: 10px;"></div>
@@ -51,8 +51,8 @@ $dept_result = $conn->query("SELECT * FROM departments ORDER BY dept_name ASC");
                     text: "최근 일주일간 출근 기록이 없는 인원을 자동으로 찾아 결근 처리합니다. (주말/휴일 제외)",
                     icon: 'info',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
+                    confirmButtonColor: '#3457D5',
+                    cancelButtonColor: '#3457D5',
                     confirmButtonText: '지금 실행',
                     cancelButtonText: '취소',
                     reverseButtons: true
@@ -85,7 +85,7 @@ $dept_result = $conn->query("SELECT * FROM departments ORDER BY dept_name ASC");
         </script>
 
         <section class="section">
-            <h3>근태 기록 조회</h3>
+            <h3 class="section-title">근태 기록 조회</h3>
 
             <div class="status-card-group">
                 <div class="status-card card" id="card-total">
@@ -158,6 +158,11 @@ $dept_result = $conn->query("SELECT * FROM departments ORDER BY dept_name ASC");
             <div class="form-group">
                 <label>퇴근 시간</label>
                 <input type="time" id="edit-out-time" class="form-input">
+                <label
+                    style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem; color: #ff5252; cursor: pointer;">
+                    <input type="checkbox" id="keep-missing-out" onchange="toggleOutTime(this.checked)">
+                    퇴근 미처리(진행중) 상태로 유지
+                </label>
             </div>
 
             <div class="form-group">
@@ -166,8 +171,8 @@ $dept_result = $conn->query("SELECT * FROM departments ORDER BY dept_name ASC");
             </div>
 
             <div class="btn-group">
-                <button class="btn btn-primary full" onclick="submitEdit()">저장하기</button>
                 <button class="btn btn-secodary full cancel" onclick="closeModal()">취소</button>
+                <button class="btn btn-primary full" onclick="submitEdit()">저장하기</button>
             </div>
         </div>
     </div>
@@ -198,7 +203,6 @@ $dept_result = $conn->query("SELECT * FROM departments ORDER BY dept_name ASC");
 
                 // 카드 엘리먼트 생성
                 const div = document.createElement('div');
-                // '憶' 문자를 지우고 정상적인 삼항 연산자로 수정했습니다.
                 div.className = `record-item ${isMissing ? 'row-missing' : ''}`;
 
                 div.innerHTML = `
@@ -217,7 +221,7 @@ $dept_result = $conn->query("SELECT * FROM departments ORDER BY dept_name ASC");
                 </div>
                 <div class="time-box">
                     <span class="time-label">퇴근 시간</span>
-                    <span class="time-value">${row.check_out_time ? row.check_out_time.substring(0, 5) : '<b style="color:#ff5252">누락</b>'}</span>
+                    <span class="time-value">${row.check_out_time ? row.check_out_time.substring(0, 5) : '<b style="color:#ff5252">미입력</b>'}</span>
                 </div>
                 <div class="time-box">
                     <span class="time-label">날짜</span>
@@ -233,25 +237,46 @@ $dept_result = $conn->query("SELECT * FROM departments ORDER BY dept_name ASC");
             });
         }
 
-        // 모달 열기
-        function openEditModal(recordId, defaultOut, name) {
-            // 1. 현재 화면에 표시된 데이터 중 해당 ID를 가진 객체 찾기
-            const row = currentData.find(r => r.record_id == recordId);
+        // 체크박스 상태에 따라 퇴근 시간 입력창 활성/비활성화
+        function toggleOutTime(isMissing) {
+            const outTimeInput = document.getElementById('edit-out-time');
+            if (isMissing) {
+                outTimeInput.value = '';        // 값 비우기
+                outTimeInput.disabled = true;   // 수정 불가
+                outTimeInput.style.backgroundColor = '#f5f5f5';
+            } else {
+                outTimeInput.disabled = false;
+                outTimeInput.style.backgroundColor = '#fff';
+                // 비활성화 해제 시 기본 퇴근 시간이나 기존 데이터 다시 넣어주기 (선택 사항)
+            }
+        }
 
+        // 모달열기
+        function openEditModal(recordId, defaultOut, name) {
+            const row = currentData.find(r => r.record_id == recordId);
             if (row) {
                 document.getElementById('edit-id').value = recordId;
-
-                // 2. 출근 시간 설정 (데이터가 있으면 00:00 형태로 자르고, 없으면 09:00 기본값)
                 document.getElementById('edit-in-time').value = row.check_in_time ? row.check_in_time.substring(0, 5) : '09:00';
 
-                // 3. 퇴근 시간 설정 (데이터가 있으면 자르고, 없으면 DB의 기준퇴근시간 사용)
-                document.getElementById('edit-out-time').value = row.check_out_time ? row.check_out_time.substring(0, 5) : defaultOut;
-            }
+                const outTimeInput = document.getElementById('edit-out-time');
+                const missingCheck = document.getElementById('keep-missing-out');
 
+                if (!row.check_out_time) {
+                    // 퇴근 기록이 없는 경우: 체크박스 체크 및 입력창 비활성화
+                    missingCheck.checked = true;
+                    toggleOutTime(true);
+                } else {
+                    // 퇴근 기록이 있는 경우: 정상 표시
+                    missingCheck.checked = false;
+                    toggleOutTime(false);
+                    outTimeInput.value = row.check_out_time.substring(0, 5);
+                }
+
+                document.getElementById('edit-reason').value = row.edit_reason || '';
+            }
             document.querySelector('.modal-header').innerText = `${name}님 기록 교정`;
             document.getElementById('editModal').style.display = 'block';
         }
-
         function updateStats(stats) {
             document.querySelector('#card-total .count').innerText = stats.total;
             document.querySelector('#card-missing .count').innerText = stats.missing;
@@ -285,14 +310,19 @@ $dept_result = $conn->query("SELECT * FROM departments ORDER BY dept_name ASC");
                     body: formData.toString()
                 });
 
-                const result = await res.json(); // text() 대신 바로 json() 시도
+                const result = await res.json();
 
                 if (result.success) {
-                    Swal.fire('수정 완료!', `상태: ${result.new_status}, 근무시간: ${result.work_hours}`, 'success')
-                        .then(() => {
-                            closeModal();
-                            fetchRecords();
-                        });
+                    Swal.fire({
+                        title: '수정 완료!',
+                        text: `상태: ${result.new_status}, 근무시간: ${result.work_hours}`,
+                        icon: 'success',
+                        confirmButtonColor: '#3457D5',
+                        confirmButtonText: '확인'
+                    }).then(() => {
+                        closeModal();
+                        fetchRecords();
+                    });
                 } else {
                     Swal.fire('실패', result.message, 'error');
                 }

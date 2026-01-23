@@ -94,7 +94,7 @@
         padding: 0;
     }
 
-    body{
+    body {
         max-width: 100%;
     }
 
@@ -108,9 +108,11 @@
     .stats-container {
         margin-top: 1rem;
     }
+
     .record-list {
         border: none;
     }
+
     .employee-card,
     .record-item {
         border: 1px solid #eee !important;

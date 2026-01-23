@@ -66,12 +66,22 @@
     </div>
 
     <script>
+        // 페이지 로드 시 실행: 저장된 아이디가 있다면 필드에 채워넣기
+        window.addEventListener('load', function () {
+            const savedId = localStorage.getItem('rememberedUsername');
+            if (savedId) {
+                document.getElementById('username').value = savedId;
+                document.getElementById('rememberMe').checked = true;
+            }
+        });
+
         document.querySelector('#loginForm').addEventListener('submit', function (e) {
             e.preventDefault();
 
             const submitBtn = document.getElementById('submitBtn');
+            const username = document.getElementById('username').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
 
-            // 중복 클릭 방지 (UX 개선)
             submitBtn.disabled = true;
             submitBtn.innerText = "로그인 중...";
 
@@ -82,12 +92,19 @@
                 body: formData
             })
                 .then(response => {
-                    // PHP에서 에러가 발생했을 경우 처리
                     if (!response.ok) throw new Error('네트워크 응답에 문제가 있습니다.');
                     return response.json();
                 })
                 .then(data => {
                     if (data.success) {
+                        
+                        // 로그인 유지
+                        if (rememberMe) {
+                            localStorage.setItem('rememberedUsername', username);
+                        } else {
+                            localStorage.removeItem('rememberedUsername');
+                        }
+
                         Swal.fire({
                             icon: 'success',
                             title: '환영합니다!',
@@ -102,9 +119,8 @@
                             icon: 'error',
                             title: '로그인 실패',
                             text: data.message,
-                            confirmButtonColor: '#3457D5' // CSS 변수 대신 실제 색상코드 권장
+                            confirmButtonColor: '#3457D5'
                         });
-                        // 실패 시 버튼 다시 활성화
                         submitBtn.disabled = false;
                         submitBtn.innerText = "로그인";
                     }

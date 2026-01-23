@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../config.php'; 
+require_once '../config.php';
 
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
     header("Location: admin-login.html");
@@ -21,7 +21,7 @@ $settings_row = $result_select->fetch_assoc();
 
 $current_check_in = isset($settings_row['standard_check_in']) ? substr($settings_row['standard_check_in'], 0, 5) : '09:00';
 $current_check_out = isset($settings_row['standard_check_out']) ? substr($settings_row['standard_check_out'], 0, 5) : '18:00';
-$current_late_time = $settings_row['late_threshold'] ?? 10; 
+$current_late_time = $settings_row['late_threshold'] ?? 10;
 ?>
 
 <!DOCTYPE html>
@@ -74,148 +74,152 @@ $current_late_time = $settings_row['late_threshold'] ?? 10;
             </form>
         </section>
 
+        <script>
+            //근무시간 설정 완료 alert
+            document.addEventListener('DOMContentLoaded', function () {
+                const saveBtn = document.getElementById('btn-save-settings');
+                const settingsForm = saveBtn.closest('form'); // 버튼이 속한 폼 찾기
+
+                saveBtn.addEventListener('click', function () {
+                    Swal.fire({
+                        title: '근무 기준을 변경하시겠습니까?',
+                        text: "변경사항은 이후 기록부터 적용되며, 이전 출퇴근 기록에는 영향을 주지 않습니다.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3457D5',
+                        cancelButtonColor: '#757575',
+                        confirmButtonText: '변경하기',
+                        cancelButtonText: '취소',
+                        reverseButtons: true // 확인/취소 버튼 위치 반전 (선택사항)
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // 사용자가 확인을 눌렀을 때만 폼 제출
+                            settingsForm.submit();
+                        }
+                    });
+                });
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const status = urlParams.get('status');
+
+                if (status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '설정 저장 완료',
+                        text: '전사 근무 기준이 성공적으로 업데이트되었습니다.',
+                        confirmButtonColor: '#4A90E2'
+                    }).then(() => {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    });
+                } else if (status === 'error') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '저장 실패',
+                        text: '데이터베이스 오류가 발생했습니다.',
+                        confirmButtonColor: '#ff5252'
+                    });
+                }
+            });
+        </script>
+
         <section class="section">
             <h3 class="section-title">출퇴근 위치 설정</h3>
             <div class="admin-card">
-                <div id="map" style="width:100%;height:350px;margin-bottom:15px;"></div>
-                <div class="form-group">
-                    <label>회사 주소 검색</label>
-                    <div style="display:flex; gap:10px;">
-                        <input type="text" id="address_input" class="form-input" placeholder="주소를 검색하세요" readonly>
-                        <button type="button" onclick="execDaumPostcode()" class="btn btn-primary"
-                            style="white-space:nowrap;">주소 찾기</button>
-                    </div>
-                </div>
-                <form id="locationSettingsForm" action="update_settings.php" method="POST">
+
+                <div id="map" style="width:100%;height:350px;"></div>
+
+                <form id="settingsForm" action="update_settings_process.php" method="POST">
                     <div class="form-group">
                         <label>회사 위도 (Latitude)</label>
-                        <input type="text" name="company_lat" id="company_lat" value="<?= $settings['company_lat'] ?>" readonly>
+                        <input type="text" name="company_lat" id="company_lat" value="<?= $settings['company_lat'] ?>"
+                            readonly>
                     </div>
                     <div class="form-group">
                         <label>회사 경도 (Longitude)</label>
-                        <input type="text" name="company_lng" id="company_lng" value="<?= $settings['company_lng'] ?>" readonly>
+                        <input type="text" name="company_lng" id="company_lng" value="<?= $settings['company_lng'] ?>"
+                            readonly>
                     </div>
                     <div class="form-group">
                         <label>허용 반경 (미터)</label>
                         <input type="number" name="allowed_radius" id="allowed_radius"
-                            value="<?= $settings['allowed_radius'] ?>" required>
+                            value="<?= $settings['allowed_radius'] ?>" placeholder="예: 100">
                     </div>
-                    <button type="button" id="btn-save-location" class="btn btn-primary full">위치 설정 저장</button>
+                    <button type="submit" class="btn btn-primary full">설정 저장</button>
                 </form>
-
+            </div>
         </section>
 
         <script type="text/javascript"
-            src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=d59b88e548c7e955f323a84e09ce25ab&libraries=services&autoload=false"></script>
-        <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-        <script>
-            var map;
-            var marker;
-            var geocoder;
+            src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=d59b88e548c7e955f323a84e09ce25ab&autoload=false"></script>
 
+        <script>
+            // 페이지 로드 및 카카오 SDK 준비 완료 후 실행
             window.onload = function () {
                 kakao.maps.load(function () {
-                    var container = document.getElementById('map');
-                    var lat = <?= (float)($settings['company_lat']) ?>;
-                    var lng = <?= (float)($settings['company_lng']) ?>;
+                    // DB에서 가져온 좌표값 (없으면 대구 기본좌표)
+                    var initialLat = Number("<?= $settings['company_lat'] ?>") || 37.5665;
+                    var initialLng = Number("<?= $settings['company_lng'] ?>") || 126.9780;
+                    var initialRadius = Number("<?= $settings['allowed_radius'] ?>") || 100;
 
-                    var options = {
-                        center: new kakao.maps.LatLng(lat, lng),
+                    var mapContainer = document.getElementById('map');
+                    var mapOption = {
+                        center: new kakao.maps.LatLng(initialLat, initialLng),
                         level: 3
                     };
-                    map = new kakao.maps.Map(container, options);
-                    marker = new kakao.maps.Marker({ position: map.getCenter(), map: map });
-                    geocoder = new kakao.maps.services.Geocoder(); // 주소-좌표 변환 객체
+
+                    var map = new kakao.maps.Map(mapContainer, mapOption);
+
+                    // 1. 마커 생성 (드래그 가능)
+                    var marker = new kakao.maps.Marker({
+                        position: new kakao.maps.LatLng(initialLat, initialLng),
+                        draggable: true
+                    });
+                    marker.setMap(map);
+
+                    // 2. 허용 반경 시각화 (원)
+                    var circle = new kakao.maps.Circle({
+                        center: new kakao.maps.LatLng(initialLat, initialLng),
+                        radius: initialRadius,
+                        strokeWeight: 2,
+                        strokeColor: '#75B8FA',
+                        strokeOpacity: 0.8,
+                        fillColor: '#CFE7FF',
+                        fillOpacity: 0.5
+                    });
+                    circle.setMap(map);
+
+                    // 3. 지도 컨트롤 추가 (스카이뷰 등)
+                    var mapTypeControl = new kakao.maps.MapTypeControl();
+                    map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
+
+                    // 4. 지도 클릭 이벤트: 클릭한 곳으로 좌표 업데이트
+                    kakao.maps.event.addListener(map, 'click', function (mouseEvent) {
+                        updatePosition(mouseEvent.latLng);
+                    });
+
+                    // 5. 마커 드래그 이벤트: 드래그가 끝난 곳으로 좌표 업데이트
+                    kakao.maps.event.addListener(marker, 'dragend', function () {
+                        updatePosition(marker.getPosition());
+                    });
+
+                    // 6. 반경 입력 시 원 크기 즉시 변경
+                    document.getElementById('allowed_radius').addEventListener('input', function () {
+                        circle.setRadius(Number(this.value));
+                    });
+
+                    // 좌표 및 UI 업데이트 함수
+                    function updatePosition(latlng) {
+                        marker.setPosition(latlng);
+                        circle.setCenter(latlng);
+
+                        // input 필드에 값 할당
+                        document.getElementById('company_lat').value = latlng.getLat().toFixed(6);
+                        document.getElementById('company_lng').value = latlng.getLng().toFixed(6);
+                    }
+
+                    console.log("카카오 지도 설정 완료");
                 });
             };
-
-            // 주소 검색 버튼 클릭 시 실행
-            function execDaumPostcode() {
-                new daum.Postcode({
-                    oncomplete: function (data) {
-                        var addr = data.address; // 최종 주소 변수
-                        document.getElementById("address_input").value = addr;
-
-                        // 주소로 좌표를 검색합니다
-                        geocoder.addressSearch(addr, function (results, status) {
-                            if (status === kakao.maps.services.Status.OK) {
-                                var coords = new kakao.maps.LatLng(results[0].y, results[0].x);
-
-                                // 결과값으로 받은 위도, 경도를 입력 필드에 넣습니다
-                                document.getElementById('company_lat').value = results[0].y;
-                                document.getElementById('company_lng').value = results[0].x;
-
-                                // 지도를 해당 위치로 이동시키고 마커를 옮깁니다
-                                map.setCenter(coords);
-                                marker.setPosition(coords);
-                            }
-                        });
-                    }
-                }).open();
-            }
-        </script>
-
-        <script>
-
-            document.addEventListener('DOMContentLoaded', function () {
-                // 전사 근무 기준 설정 저장
-                const saveBtn = document.getElementById('btn-save-settings');
-                const settingsForm = saveBtn ? saveBtn.closest('form') : null;
-
-                if (saveBtn) {
-                    saveBtn.addEventListener('click', function () {
-                        Swal.fire({
-                            title: '근무 기준을 변경하시겠습니까?',
-                            text: "변경사항은 이후 기록부터 적용됩니다.",
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonColor: '#3457D5',
-                            cancelButtonColor: '#757575',
-                            confirmButtonText: '변경하기',
-                            cancelButtonText: '취소',
-                            reverseButtons: true
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                settingsForm.submit();
-                            }
-                        });
-                    });
-                }
-
-                // 출퇴근 위치 설정 저장
-                const saveLocationBtn = document.getElementById('btn-save-location');
-                const locationForm = document.getElementById('locationSettingsForm');
-
-                if (saveLocationBtn) {
-                    saveLocationBtn.addEventListener('click', function () {
-                        // 입력값 확인
-                        const lat = document.getElementById('company_lat').value;
-                        const lng = document.getElementById('company_lng').value;
-                        const radius = document.getElementById('allowed_radius').value;
-
-                        if (!lat || !lng || !radius) {
-                            Swal.fire('입력 오류', '위도, 경도, 반경을 모두 입력해주세요.', 'error');
-                            return;
-                        }
-
-                        Swal.fire({
-                            title: '출퇴근 위치를 변경하시겠습니까?',
-                            html: `현재 설정된 반경: <b>${radius}m</b><br><small>지정된 위치 밖에서는 출퇴근 버튼이 비활성화됩니다.</small>`,
-                            icon: 'question',
-                            showCancelButton: true,
-                            confirmButtonColor: '#3457D5',
-                            cancelButtonColor: '#757575',
-                            confirmButtonText: '저장하기',
-                            cancelButtonText: '취소',
-                            reverseButtons: true
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                locationForm.submit();
-                            }
-                        });
-                    });
-                }
-            });
         </script>
 
         <section class="section">

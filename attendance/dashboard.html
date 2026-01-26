@@ -271,17 +271,6 @@ if ($summary_data['total_work_days'] > 0) {
 
 
             <div class="work-buttons">
-                <form action="check_in_process.php" method="POST" id="checkInForm">
-                    <input type="hidden" name="latitude" id="latitude">
-                    <input type="hidden" name="longitude" id="longitude">
-                    <input type="hidden" name="location_addr" id="location_addr">
-                    <button type="submit" id="checkInBtn"
-                        class="btn btn-block <?= $record ? 'btn-secondary' : 'btn-primary' ?>" <?=$record ? 'disabled'
-                        : '' ?>>
-                        출근하기
-                    </button>
-                </form>
-
                 <form action="check_out_process.php" method="POST" id="checkOutForm">
                     <input type="hidden" name="out_latitude" id="out_latitude">
                     <input type="hidden" name="out_longitude" id="out_longitude">
@@ -290,6 +279,17 @@ if ($summary_data['total_work_days'] > 0) {
                         class="btn btn-block <?= ($record && !$record['check_out_time']) ? 'btn-primary' : 'btn-secondary' ?>"
                         <?=($record && !$record['check_out_time']) ? '' : 'disabled' ?>>
                         퇴근하기
+                    </button>
+                </form>
+
+                <form action="check_in_process.php" method="POST" id="checkInForm">
+                    <input type="hidden" name="latitude" id="latitude">
+                    <input type="hidden" name="longitude" id="longitude">
+                    <input type="hidden" name="location_addr" id="location_addr">
+                    <button type="submit" id="checkInBtn"
+                        class="btn btn-block <?= $record ? 'btn-secondary' : 'btn-primary' ?>" <?=$record ? 'disabled'
+                        : '' ?>>
+                        출근하기
                     </button>
                 </form>
             </div>

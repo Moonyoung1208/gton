@@ -99,23 +99,24 @@ if ($check_stmt->num_rows > 0) {
 $check_stmt->close();
 
 // 출근 기록 INSERT
-$sql_insert = "INSERT INTO records (user_id, work_date, check_in_time, status) VALUES (?, ?, ?, ?)";
+$sql_insert = "INSERT INTO records (user_id, work_date, check_in_time, check_in_location, status) VALUES (?, ?, ?, ?, ?)";
 $stmt = $conn->prepare($sql_insert);
-$stmt->bind_param("isss", $user_id, $work_date, $check_in_time, $status);
 
-if ($insert_stmt->execute()) {
-    // 성공 시 세션에 정보 저장
+// 2. 바인딩 변수 개수 맞추기 (i s s s s)
+$stmt->bind_param("issss", $user_id, $work_date, $check_in_time, $check_in_location, $status);
+
+// 3. 변수명 통일: $insert_stmt -> $stmt 로 변경
+if ($stmt->execute()) {
     $_SESSION['status'] = "success";
     $_SESSION['msg'] = "출근이 성공적으로 기록되었습니다.";
     header("Location: dashboard.html");
 } else {
-    // 실패 시 세션에 에러 정보 저장
-    error_log("출근 기록 실패: " . $insert_stmt->error);
+    error_log("출근 기록 실패: " . $stmt->error);
     $_SESSION['status'] = "error";
     $_SESSION['msg'] = "출근 기록 중 오류가 발생했습니다.";
     header("Location: dashboard.html");
 }
 
-$insert_stmt->close();
+$stmt->close();
 $conn->close();
 ?>

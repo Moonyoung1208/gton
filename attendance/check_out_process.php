@@ -14,7 +14,7 @@ $conn = connectDB();
 $user_id = $_SESSION['user_id'];
 $work_date = date("Y-m-d");
 $check_out_time = date("H:i:s"); // 현재 시각을 퇴근 시각으로 사용
-$check_out_location = "대구 수성구 동대구로 390";
+$check_out_location = $_POST['out_location_addr'] ?? "위치 정보 없음";
 $standard_work_end_time = '18:00:00'; // 기준 퇴근 시간 (필요에 따라 설정)
 
 // 3. 오늘 기록 조회 및 유효성 검사
@@ -71,8 +71,6 @@ $update_sql = "UPDATE records
                    status = ? 
                WHERE record_id = ?";
 $update_stmt = $conn->prepare($update_sql);
-
-// 바인딩: s=퇴근시각, s=퇴근위치, d=근무시간(Decimal/Double), s=상태, i=record_id
 $update_stmt->bind_param("ssdsi", $check_out_time, $check_out_location, $work_hours, $final_status, $record_id);
 
 if ($update_stmt->execute()) {

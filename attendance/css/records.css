@@ -131,6 +131,7 @@ td.normal-bg {
     padding: 2px 0;
     font-size: 11px;
     border-radius: 4px;
+    background: transparent;
 }
 
 /* 상태별 글자 색상 및 배경 설정 */
@@ -154,4 +155,12 @@ td.normal-bg {
     /* 연빨강 배경 */
     color: #c62828;
     /* 진빨강 글자 */
+}
+.fc-event.fc-event-start.fc-event-end.fc-event-past.fc-daygrid-event.fc-daygrid-block-event.fc-h-event::before, 
+.fc-event.fc-event-start.fc-event-end.fc-event-past.fc-daygrid-event.fc-daygrid-block-event.fc-h-event::after {
+    background-color: transparent;
+}
+
+.fc-event.fc-event-start.fc-event-end.fc-event-past.fc-daygrid-event.fc-daygrid-block-event.fc-h-event {
+    box-shadow: none;
 }

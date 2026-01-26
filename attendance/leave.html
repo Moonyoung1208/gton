@@ -1,0 +1,255 @@
+<?php
+session_start();
+if (!isset($_SESSION['user_id']) || $_SESSION['logged_in'] !== TRUE) {
+    header("Location: ./index.html"); exit;
+}
+require_once 'config.php';
+
+$current_user_id = $_SESSION['user_id'];
+$conn = @connectDB();
+
+// 1. 내 연차 현황 가져오기 (leave_status 테이블)
+$sql_status = "SELECT total_days, used_days, (total_days - used_days) as remain_days FROM leave_status WHERE user_id = ?";
+$stmt_status = $conn->prepare($sql_status);
+$stmt_status->bind_param("i", $current_user_id);
+$stmt_status->execute();
+$leave_status = $stmt_status->get_result()->fetch_assoc();
+
+// 2. 달력 이벤트 데이터 (내 연차 신청 내역)
+$leaveEvents = [];
+$sql_leave = "SELECT start_date, end_date, leave_type, status FROM leave_requests WHERE user_id = ?";
+$stmt_leave = $conn->prepare($sql_leave);
+$stmt_leave->bind_param("i", $current_user_id);
+$stmt_leave->execute();
+$res_leave = $stmt_leave->get_result();
+
+$typeMap = ['full' => '연차', 'am_off' => '오전반차', 'pm_off' => '오후반차'];
+
+while ($row = $res_leave->fetch_assoc()) {
+    $className = match($row['status']) {
+        'approved' => 'event-approved',
+        'pending' => 'event-pending',
+        'rejected' => 'event-rejected',
+        default => ''
+    };
+    $leaveEvents[] = [
+        'start' => $row['start_date'],
+        'end' => date('Y-m-d', strtotime($row['end_date'] . ' +1 day')), // FullCalendar 종료일 포함 처리
+        'title' => $typeMap[$row['leave_type']] ?? '휴가',
+        'display' => 'block',
+        'classNames' => [$className]
+    ];
+}
+?>
+
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>연차 관리 - 근태ON</title>
+
+
+    <!-- css -->
+    <link rel="stylesheet" href="./css/common.css">
+    <link rel="stylesheet" href="./css/dashboard.css">
+    <link rel="stylesheet" href="./css/records.css">
+    <link rel="stylesheet" href="./css/leave.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+        integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- favi -->
+    <link rel="apple-touch-icon" sizes="57x57" href="/attendance/assets/favi/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/attendance/assets/favi/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/attendance/assets/favi/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/attendance/assets/favi/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/attendance/assets/favi/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/attendance/assets/favi/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/attendance/assets/favi/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/attendance/assets/favi/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/attendance/assets/favi/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/attendance/assets/favi/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/attendance/assets/favi/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/attendance/assets/favi/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/attendance/assets/favi/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- open graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://gton.dothome.co.kr">
+    <meta property="og:title" content="근태ON">
+    <meta property="og:description" content="근태온, 쉽고 빠른 근태관리의 시작">
+    <meta property="og:image" content="https://gton.dothome.co.kr/attendance/assets/og-image.png">
+    <meta property="og:site_name" content="근태 ON">
+    <meta property="og:locale" content="ko_KR">
+
+    <!-- sweetalert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- full calendar -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+
+</head>
+
+<body>
+
+    <nav class="nav">
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="dashboard.html" class="nav-link active">
+                    <i class="fa-regular fa-house"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="records.html" class="nav-link">
+                    <i class="fa-regular fa-calendar"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="statistics.html" class="nav-link">
+                    <i class="fa-solid fa-chart-column"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="mypage.html" class="nav-link">
+                    <i class="fa-solid fa-gear"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <section class="section">
+            <div class="section-header">
+                <h3 class="section-title">연차 달력</h3>
+                <p></p>
+            </div>
+            <div id="calendar" class="calendar-wrap"></div>
+        </section>
+
+        <section class="leave-summary">
+            <div class="card">
+                <span class="label">총 연차</span>
+                <span class="val">
+                    <?= $leave_status['total_days'] ?? 0 ?>
+                </span>
+            </div>
+            <div class="card">
+                <span class="label">사용한 연차</span>
+                <span class="val">
+                    <?= $leave_status['used_days'] ?? 0 ?>
+                </span>
+            </div>
+            <div class="card">
+                <span class="label">잔여 연차</span>
+                <span class="val">
+                    <?= $leave_status['remain_days'] ?? 0 ?>
+                </span>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ko',
+                headerToolbar: { left: 'prev', center: 'title', right: 'next' },
+                height: 'auto',
+                selectable: true,
+                selectMirror: true,
+                longPressDelay: 100,
+
+                // --- 구글 캘린더 공휴일 연동 ---
+                googleCalendarApiKey: 'AIzaSyDMTQ8mSkHvslyq_Q_MbnNf9FEXWf1MHFo', // API 키가 있다면 입력
+                eventSources: [
+                    {
+                        // 한국 공휴일 (Google Calendar ID)
+                        googleCalendarId: 'ko.south_korea#holiday@group.v.calendar.google.com',
+                        className: 'holiday-event',
+                        display: 'background'
+                    },
+                    {
+                        events: <?= json_encode($calendarEvents) ?>
+                    }
+                ],
+
+                select: function (info) {
+                    const startStr = info.startStr;
+                    let endStr;
+
+                    // 1. 종료일 계산 로직 수정
+                    let actualEnd = new Date(info.end.getTime() - 1);
+                    endStr = actualEnd.toISOString().split('T')[0];
+
+                    // 2. 메시지 및 폼 구성을 위한 변수
+                    const isSingleDay = (startStr === endStr);
+                    const dateRangeDisplay = isSingleDay ?
+                        `<span style="color:var(--main-color); font-weight:800;">${startStr}</span>` :
+                        `<span style="color:var(--main-color); font-weight:800;">${startStr} ~ ${endStr}</span>`;
+
+                    // 3. SweetAlert2 팝업 실행
+                    Swal.fire({
+                        title: '연차 신청 상세',
+                        html: `
+            <div style="text-align:left; margin-top:1rem;">
+                <p style="margin-bottom:15px; font-size:14px; color:var(--Gray-600);">선택일: ${dateRangeDisplay}</p>
+                
+                <div class="leave-type-selector">
+                    <label class="type-option">
+                        <input type="radio" name="leave_type" value="full" checked>
+                        <span class="type-card">종일 연차</span>
+                    </label>
+                    ${isSingleDay ? `
+                    <label class="type-option">
+                        <input type="radio" name="leave_type" value="am_off">
+                        <span class="type-card">오전 반차</span>
+                    </label>
+                    <label class="type-option">
+                        <input type="radio" name="leave_type" value="pm_off">
+                        <span class="type-card">오후 반차</span>
+                    </label>
+                    <textarea id="leave_reason" class="swal2-textarea" placeholder="사유를 입력해주세요 (선택사항)" style="margin: 15px 0 0 0; width: 100%; font-size: 14px; border-radius: 8px;"></textarea>
+                    ` : ''}
+                </div>
+            </div>
+        `,
+                        showCancelButton: true,
+                        confirmButtonColor: '#3457D5',
+                        confirmButtonText: '신청하기',
+                        cancelButtonText: '취소',
+                        reverseButtons: true,
+                        customClass: {
+                            actions: 'swal2-actions',
+                            confirmButton: 'swal2-confirm',
+                            cancelButton: 'swal2-cancel'
+                        },
+                        preConfirm: () => {
+                            const leaveType = document.querySelector('input[name="leave_type"]:checked').value;
+                            const reason = document.getElementById('leave_reason').value;
+                            return { leaveType, reason };
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const { leaveType, reason } = result.value;
+                            // 인코딩된 데이터를 가지고 처리 페이지로 이동
+                            const url = `leave_apply_process.php?start=${startStr}&end=${endStr}&type=${leaveType}&reason=${encodeURIComponent(reason)}`;
+                            location.href = url;
+                        }
+                    });
+
+                    calendar.unselect(); // 선택 영역 초기화
+                }
+            });
+            calendar.render();
+        });
+    </script>
+</body>
+
+</html>

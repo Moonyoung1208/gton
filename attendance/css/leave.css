@@ -1,0 +1,86 @@
+/* 연차 전용 추가 스타일 */
+.leave-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.leave-summary .card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--Gray-50);
+}
+
+.label {
+    font-size: 0.9rem;
+}
+
+.val {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.card:last-child .val {
+    color: var(--main-color);
+}
+
+/* 이벤트 상태별 색상 */
+.event-approved {
+    background-color: var(--main-100) !important;
+    border-left: 4px solid var(--main-color) !important;
+    color: var(--main-900) !important;
+}
+
+.event-pending {
+    background-color: var(--Gray-100) !important;
+    border-left: 4px solid var(--Gray-400) !important;
+    color: var(--Gray-600) !important;
+}
+
+.event-rejected {
+    background-color: #FFEBEE !important;
+    border-left: 4px solid #C62828 !important;
+    color: #C62828 !important;
+}
+
+.fc-event-title {
+    padding-left: 5px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* alert style */
+.leave-type-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.type-option {
+    cursor: pointer;
+}
+
+.type-option input {
+    display: none;
+}
+
+.type-card {
+    display: block;
+    padding: 12px;
+    border: 1px solid var(--Gray-200);
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--Gray-600);
+    transition: 0.2s;
+}
+
+.type-option input:checked+.type-card {
+    background-color: var(--main-50);
+    border-color: var(--main-color);
+    color: var(--main-color);
+}
+

@@ -1,0 +1,141 @@
+<?php
+session_start();
+require_once '../config.php';
+
+// 관리자 권한 체크
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== TRUE) {
+    header("Location: admin-login.html");
+    exit;
+}
+
+$conn = connectDB();
+
+// 승인 대기 중인 연차 내역 조회 (예시 쿼리)
+$sql_pending = "SELECT l.*, u.name, d.dept_name 
+                FROM leave_requests l
+                JOIN users u ON l.user_id = u.user_id
+                JOIN departments d ON u.dept_id = d.id
+                WHERE l.status = 'pending'
+                ORDER BY l.created_at DESC";
+$pending_results = $conn->query($sql_pending);
+
+// 전체 대기 건수
+$total_pending = $pending_results->num_rows;
+?>
+
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>연차 승인 관리 - 근태ON</title>
+    <?php include('head.php'); ?>
+</head>
+
+<body class="admin-body">
+    <div class="admin-menu">
+        <div class="admin-nav-link">
+            <i class="fa-solid fa-bars" id="menuOpen"></i>
+        </div>
+        <div class="page-header">
+            <h2 class="page-title">연차 승인 관리</h2>
+        </div>
+    </div>
+
+    <?php include('header.php'); ?>
+
+    <main class="container">
+        <section class="section">
+            <div class="admin-stats">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-label">승인 대기</div>
+                    <div class="admin-stat-value">
+                        <?= $total_pending ?><span>건</span>
+                    </div>
+                </div>
+                <div class="admin-stat-card" onclick="location.href='admin-leave-history.php'">
+                    <div class="admin-stat-label">처리 완료(금일)</div>
+                    <div class="admin-stat-value" style="color: var(--Gray-600);">
+                        0<span>건</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 class="section-title" style="margin-bottom: 0;">신청 내역</h3>
+                <span class="badge badge-warning">대기
+                    <?= $total_pending ?>
+                </span>
+            </div>
+
+            <?php if($total_pending > 0): ?>
+            <div class="leave-request-list">
+                <?php while($row = $pending_results->fetch_assoc()): ?>
+                <div class="detail-card" style="margin-bottom: 1rem;">
+                    <div class="detail-row" style="border-bottom: 1px solid var(--Gray-100);">
+                        <div class="detail-label">신청자</div>
+                        <div class="detail-value"><strong>
+                                <?= htmlspecialchars($row['name']) ?>
+                            </strong> (
+                            <?= htmlspecialchars($row['dept_name']) ?>)
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">휴가구분</div>
+                        <div class="detail-value">
+                            <span class="badge <?= ($row['leave_type'] == '연차') ? 'badge-success' : 'badge-warning' ?>">
+                                <?= htmlspecialchars($row['leave_type']) ?>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">신청일자</div>
+                        <div class="detail-value">
+                            <?= $row['start_date'] ?> ~
+                            <?= $row['end_date'] ?>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">사유</div>
+                        <div class="detail-value">
+                            <?= htmlspecialchars($row['reason']) ?>
+                        </div>
+                    </div>
+
+                    <div class="admin-actions">
+                        <button class="action-btn" style="border-color: var(--Gray-400); color: var(--Gray-600);"
+                            onclick="processLeave(<?= $row['id'] ?>, 'reject')">
+                            <i class="fa-solid fa-xmark"></i> 반려
+                        </button>
+                        <button class="action-btn" onclick="processLeave(<?= $row['id'] ?>, 'approve')">
+                            <i class="fa-solid fa-check"></i> 승인
+                        </button>
+                    </div>
+                </div>
+                <?php endwhile; ?>
+            </div>
+            <?php else: ?>
+            <div class="admin-stat-card" style="padding: 3rem;">
+                <div class="admin-stat-label">현재 대기 중인 신청이 없습니다.</div>
+            </div>
+            <?php endif; ?>
+        </section>
+    </main>
+
+    <script>
+        function processLeave(leaveId, status) {
+            if (!confirm(status === 'approve' ? '승인하시겠습니까?' : '반려하시겠습니까?')) return;
+
+            // 실제 연동 시 AJAX 호출
+            console.log(`Request ID ${leaveId} to be ${status}`);
+            alert('처리되었습니다.');
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>
